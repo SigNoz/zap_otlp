@@ -38,6 +38,7 @@ func putOTLPEncoder(enc *otlpEncoder) {
 	enc.openNamespaces = 0
 	enc.reflectBuf = nil
 	enc.reflectEnc = nil
+	enc.log = nil
 	_otlpPool.Put(enc)
 }
 
@@ -47,7 +48,7 @@ type otlpEncoder struct {
 	spaced         bool
 	openNamespaces int
 
-	log lpb.LogRecord
+	log *lpb.LogRecord
 
 	// for encoding generic values by reflection
 	reflectBuf *buffer.Buffer
@@ -70,7 +71,7 @@ func NewOTLPEncoder(cfg zapcore.EncoderConfig) zapcore.Encoder {
 	return &otlpEncoder{
 		EncoderConfig: &cfg,
 		buf:           bufferPool.Get(),
-		log:           lpb.LogRecord{},
+		log:           &lpb.LogRecord{},
 	}
 }
 
@@ -164,6 +165,7 @@ func (enc *otlpEncoder) clone() *otlpEncoder {
 	clone.spaced = enc.spaced
 	clone.openNamespaces = enc.openNamespaces
 	clone.buf = bufferPool.Get()
+	clone.log = &lpb.LogRecord{}
 	return clone
 }
 
@@ -252,7 +254,7 @@ func (enc *otlpEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (
 	// final.buf.AppendString(final.LineEnding)
 
 	// b, _ := json.Marshal(final.log)
-	data, err := proto.Marshal(&final.log)
+	data, err := proto.Marshal(final.log)
 	if err != nil {
 		panic(err)
 	}
