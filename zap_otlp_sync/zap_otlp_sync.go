@@ -3,15 +3,16 @@ package zap_otlp_sync
 import (
 	"context"
 
+	"go.opentelemetry.io/otel/sdk/resource"
 	collpb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
+	cv1 "go.opentelemetry.io/proto/otlp/common/v1"
 	lpb "go.opentelemetry.io/proto/otlp/logs/v1"
+	rv1 "go.opentelemetry.io/proto/otlp/resource/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )
 
-type ResourceAttributes map[string]interface{}
-
-func NewOtlpSyncer(conn *grpc.ClientConn, batchSize int, resourceAttrs ResourceAttributes) *OtelSyncer {
+func NewOtlpSyncer(conn *grpc.ClientConn, batchSize int, resSchema string, res *resource.Resource) *OtelSyncer {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -19,10 +20,25 @@ func NewOtlpSyncer(conn *grpc.ClientConn, batchSize int, resourceAttrs ResourceA
 		batchSize = 100
 	}
 
+	var rattrs *rv1.Resource
+	if res != nil {
+		iter := res.Iter()
+		attrs := make([]*cv1.KeyValue, 0, iter.Len())
+		for iter.Next() {
+			attr := iter.Attribute()
+			attrs = append(attrs, &cv1.KeyValue{
+				Key:   string(attr.Key),
+				Value: &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: attr.Value.Emit()}},
+			})
+		}
+		rattrs = &rv1.Resource{Attributes: attrs}
+	}
+
 	return &OtelSyncer{
 		ctx,
 		cancel,
-		resourceAttrs,
+		rattrs,
+		resSchema,
 		[][]byte{},
 		collpb.NewLogsServiceClient(conn),
 		batchSize,
@@ -30,10 +46,11 @@ func NewOtlpSyncer(conn *grpc.ClientConn, batchSize int, resourceAttrs ResourceA
 }
 
 type OtelSyncer struct {
-	ctx                context.Context
-	close              context.CancelFunc
-	ResourceAttributes ResourceAttributes
-	values             [][]byte
+	ctx       context.Context
+	close     context.CancelFunc
+	res       *rv1.Resource
+	resSchema string
+	values    [][]byte
 
 	client    collpb.LogsServiceClient
 	batchSize int
@@ -57,9 +74,9 @@ func (l OtelSyncer) pushToSigNoz() (err error) {
 	// }
 
 	rl := &lpb.ResourceLogs{ScopeLogs: []*lpb.ScopeLogs{sl}}
-	// if l.res != nil {
-	// 	rl.SchemaUrl, rl.Resource = l.resSchema, l.res
-	// }
+	if l.res != nil {
+		rl.SchemaUrl, rl.Resource = l.resSchema, l.res
+	}
 	_, _ = l.client.Export(context.Background(), &collpb.ExportLogsServiceRequest{
 		ResourceLogs: []*lpb.ResourceLogs{rl},
 	})
