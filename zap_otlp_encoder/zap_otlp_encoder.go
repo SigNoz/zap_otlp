@@ -12,6 +12,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"go.opentelemetry.io/otel/trace"
 	v1 "go.opentelemetry.io/proto/otlp/common/v1"
 	lpb "go.opentelemetry.io/proto/otlp/logs/v1"
 	"go.uber.org/zap/buffer"
@@ -267,6 +268,21 @@ func (enc *otlpEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (
 }
 
 func (enc *otlpEncoder) addKeyVal(key string, val *v1.AnyValue) {
+	if key == "trace_id" {
+		traceId, err := trace.TraceIDFromHex(val.GetStringValue())
+		if err == nil {
+			enc.log.TraceId = traceId[:]
+		}
+		return
+	}
+	if key == "span_id" {
+		spanId, err := trace.SpanIDFromHex(val.GetStringValue())
+		if err == nil {
+			enc.log.SpanId = spanId[:]
+		}
+		return
+	}
+
 	enc.log.Attributes = append(enc.log.Attributes, &v1.KeyValue{
 		Key:   key,
 		Value: val,
