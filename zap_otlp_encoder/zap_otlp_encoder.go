@@ -7,10 +7,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
-	"math"
 	"sync"
 	"time"
-	"unicode/utf8"
 
 	"go.opentelemetry.io/otel/trace"
 	v1 "go.opentelemetry.io/proto/otlp/common/v1"
@@ -287,110 +285,6 @@ func (enc *otlpEncoder) addKeyVal(key string, val *v1.AnyValue) {
 		Key:   key,
 		Value: val,
 	})
-}
-
-func (enc *otlpEncoder) addElementSeparator() {
-	last := enc.buf.Len() - 1
-	if last < 0 {
-		return
-	}
-	switch enc.buf.Bytes()[last] {
-	case '{', '[', ':', ',', ' ':
-		return
-	default:
-		enc.buf.AppendByte(',')
-		if enc.spaced {
-			enc.buf.AppendByte(' ')
-		}
-	}
-}
-
-func (enc *otlpEncoder) appendFloat(val float64, bitSize int) {
-	switch {
-	case math.IsNaN(val):
-		enc.buf.AppendString(`"NaN"`)
-	case math.IsInf(val, 1):
-		enc.buf.AppendString(`"+Inf"`)
-	case math.IsInf(val, -1):
-		enc.buf.AppendString(`"-Inf"`)
-	default:
-		enc.buf.AppendFloat(val, bitSize)
-	}
-}
-
-// safeAddString JSON-escapes a string and appends it to the internal buffer.
-// Unlike the standard library's encoder, it doesn't attempt to protect the
-// user from browser vulnerabilities or JSONP-related problems.
-func (enc *otlpEncoder) safeAddString(s string) {
-	for i := 0; i < len(s); {
-		if enc.tryAddRuneSelf(s[i]) {
-			i++
-			continue
-		}
-		r, size := utf8.DecodeRuneInString(s[i:])
-		if enc.tryAddRuneError(r, size) {
-			i++
-			continue
-		}
-		enc.buf.AppendString(s[i : i+size])
-		i += size
-	}
-}
-
-// safeAddByteString is no-alloc equivalent of safeAddString(string(s)) for s []byte.
-func (enc *otlpEncoder) safeAddByteString(s []byte) {
-	for i := 0; i < len(s); {
-		if enc.tryAddRuneSelf(s[i]) {
-			i++
-			continue
-		}
-		r, size := utf8.DecodeRune(s[i:])
-		if enc.tryAddRuneError(r, size) {
-			i++
-			continue
-		}
-		enc.buf.Write(s[i : i+size])
-		i += size
-	}
-}
-
-// tryAddRuneSelf appends b if it is valid UTF-8 character represented in a single byte.
-func (enc *otlpEncoder) tryAddRuneSelf(b byte) bool {
-	if b >= utf8.RuneSelf {
-		return false
-	}
-	if b >= 0x20 && b != '\\' && b != '"' {
-		enc.buf.AppendByte(b)
-		return true
-	}
-	switch b {
-	case '\\', '"':
-		enc.buf.AppendByte('\\')
-		enc.buf.AppendByte(b)
-	case '\n':
-		enc.buf.AppendByte('\\')
-		enc.buf.AppendByte('n')
-	case '\r':
-		enc.buf.AppendByte('\\')
-		enc.buf.AppendByte('r')
-	case '\t':
-		enc.buf.AppendByte('\\')
-		enc.buf.AppendByte('t')
-	default:
-		// Encode bytes < 0x20, except for the escape sequences above.
-		enc.buf.AppendString(`\u00`)
-		enc.buf.AppendByte(_hex[b>>4])
-		enc.buf.AppendByte(_hex[b&0xF])
-	}
-	return true
-}
-
-func (enc *otlpEncoder) tryAddRuneError(r rune, size int) bool {
-	if r == utf8.RuneError && size == 1 {
-		enc.buf.AppendString(`\ufffd`)
-		return true
-	}
-	return false
 }
 
 func addFields(enc zapcore.ObjectEncoder, fields []zapcore.Field) {
