@@ -67,8 +67,11 @@ func (l OtelSyncer) pushToSigNoz() (err error) {
 	return nil
 }
 
-func (l *OtelSyncer) Write(p []byte) (n int, err error) {
-	l.values = append(l.values, p)
+func (l *OtelSyncer) Write(record []byte) (n int, err error) {
+	// create deep copyy of the data
+	data := make([]byte, len(record))
+	copy(data, record)
+	l.values = append(l.values, data)
 	if len(l.values) >= l.batchSize {
 		err := l.Sync()
 		if err != nil {
@@ -76,7 +79,7 @@ func (l *OtelSyncer) Write(p []byte) (n int, err error) {
 		}
 		l.values = [][]byte{}
 	}
-	return len(p), nil
+	return len(record), nil
 }
 
 func (l OtelSyncer) Sync() error {
