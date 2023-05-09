@@ -37,12 +37,14 @@ func (a App) Hello(ctx context.Context, user string) error {
 
 func setup(ctx context.Context, conn *grpc.ClientConn) (*zap.Logger, error) {
 	config := zap.NewProductionEncoderConfig()
-	consoleEncoder := zapotlpencoder.NewOTLPEncoder(config)
+	otlpEncoder := zapotlpencoder.NewOTLPEncoder(config)
+	consoleEncoder := zapcore.NewConsoleEncoder(config)
 	defaultLogLevel := zapcore.DebugLevel
 
-	ws := zapcore.AddSync(zapotlpsync.NewOtlpSyncer(conn, map[string]interface{}{"service": "myservice"}))
+	ws := zapcore.AddSync(zapotlpsync.NewOtlpSyncer(conn, 100, map[string]interface{}{"service": "myservice"}))
 	core := zapcore.NewTee(
-		zapcore.NewCore(consoleEncoder, zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), ws), defaultLogLevel),
+		zapcore.NewCore(consoleEncoder, os.Stdout, defaultLogLevel),
+		zapcore.NewCore(otlpEncoder, zapcore.NewMultiWriteSyncer(ws), defaultLogLevel),
 	)
 	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 
@@ -67,7 +69,7 @@ func main() {
 	app := NewApp(logger)
 	for _, user := range []string{"alice", ""} {
 		if err := app.Hello(ctx, user); err != nil {
-			logger.Error("failed to do xyz" + user)
+			logger.Error("failed to do xyz"+user, zap.String("user", "abcd"))
 		}
 	}
 

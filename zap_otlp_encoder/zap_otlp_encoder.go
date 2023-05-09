@@ -16,6 +16,7 @@ import (
 	lpb "go.opentelemetry.io/proto/otlp/logs/v1"
 	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"
+	"google.golang.org/protobuf/proto"
 )
 
 const _hex = "0123456789abcdef"
@@ -74,98 +75,64 @@ func NewOTLPEncoder(cfg zapcore.EncoderConfig) zapcore.Encoder {
 }
 
 func (enc *otlpEncoder) AddArray(key string, arr zapcore.ArrayMarshaler) error {
-	// enc.addKey(key)
-	return enc.AppendArray(arr)
+	// todo : implement this
+	return nil
 }
 
 func (enc *otlpEncoder) AddObject(key string, obj zapcore.ObjectMarshaler) error {
-	// enc.addKey(key)
-	return enc.AppendObject(obj)
+	// todo : implement this
+	return nil
 }
 
 func (enc *otlpEncoder) AddBinary(key string, val []byte) {
 	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_StringValue{StringValue: base64.StdEncoding.EncodeToString(val)}})
-	// enc.AddString(key, base64.StdEncoding.EncodeToString(val))
 }
 
 func (enc *otlpEncoder) AddByteString(key string, val []byte) {
 	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_StringValue{StringValue: string(val)}})
-	// enc.addKey(key)
-	// enc.AppendByteString(val)
+}
+
+func (enc *otlpEncoder) AddString(key, val string) {
+	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_StringValue{StringValue: val}})
 }
 
 func (enc *otlpEncoder) AddBool(key string, val bool) {
 	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_BoolValue{BoolValue: val}})
-	// enc.addKey(key)
-	// enc.AppendBool(val)
 }
 
 func (enc *otlpEncoder) AddComplex128(key string, val complex128) {
-	// enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_DoubleValue{DoubleValue: }})
-	// enc.addKey(key)
-	// enc.AppendComplex128(val)
+	// todo: implement this
 }
 
 func (enc *otlpEncoder) AddComplex64(key string, val complex64) {
-	// enc.addKey(key)
-	// enc.AppendComplex64(val)
+	// todo: implement this
 }
 
 func (enc *otlpEncoder) AddDuration(key string, val time.Duration) {
-	// enc.addKey(key)
-	// enc.AppendDuration(val)
+	// todo: implement this
 }
 
 func (enc *otlpEncoder) AddFloat64(key string, val float64) {
 	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_DoubleValue{DoubleValue: val}})
-	// enc.addKey(key)
-	// enc.AppendFloat64(val)
 }
 
 func (enc *otlpEncoder) AddFloat32(key string, val float32) {
 	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_DoubleValue{DoubleValue: float64(val)}})
-	// enc.addKey(key)
-	// enc.AppendFloat32(val)
 }
 
 func (enc *otlpEncoder) AddInt64(key string, val int64) {
 	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_IntValue{IntValue: val}})
-	// enc.addKey(key)
-	// enc.AppendInt64(val)
 }
 
-func (enc *otlpEncoder) resetReflectBuf() {
-	if enc.reflectBuf == nil {
-		enc.reflectBuf = bufferPool.Get()
-		enc.reflectEnc = enc.NewReflectedEncoder(enc.reflectBuf)
-	} else {
-		enc.reflectBuf.Reset()
-	}
+func (enc *otlpEncoder) AddUint64(key string, val uint64) {
+	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_IntValue{IntValue: int64(val)}})
 }
 
-var nullLiteralBytes = []byte("null")
-
-// Only invoke the standard JSON encoder if there is actually something to
-// encode; otherwise write JSON null literal directly.
-func (enc *otlpEncoder) encodeReflected(obj interface{}) ([]byte, error) {
-	if obj == nil {
-		return nullLiteralBytes, nil
-	}
-	enc.resetReflectBuf()
-	if err := enc.reflectEnc.Encode(obj); err != nil {
-		return nil, err
-	}
-	enc.reflectBuf.TrimNewline()
-	return enc.reflectBuf.Bytes(), nil
+func (enc *otlpEncoder) AddTime(key string, val time.Time) {
+	// todo: implement this
 }
 
 func (enc *otlpEncoder) AddReflected(key string, obj interface{}) error {
-	// valueBytes, err := enc.encodeReflected(obj)
-	// if err != nil {
-	// 	return err
-	// }
-	// enc.addKeyVal(key)
-	// _, err = enc.buf.Write(valueBytes)
 	return nil
 }
 
@@ -175,158 +142,15 @@ func (enc *otlpEncoder) OpenNamespace(key string) {
 	// enc.openNamespaces++
 }
 
-func (enc *otlpEncoder) AddString(key, val string) {
-	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_StringValue{StringValue: val}})
-	// enc.addKey(key)
-	// enc.AppendString(val)
-}
-
-func (enc *otlpEncoder) AddTime(key string, val time.Time) {
-	// enc.addKey("timestamp")
-	// enc.AppendTime(val)
-}
-
-func (enc *otlpEncoder) AddUint64(key string, val uint64) {
-	// enc.addKey(key)
-	// enc.AppendUint64(val)
-}
-
-func (enc *otlpEncoder) AppendArray(arr zapcore.ArrayMarshaler) error {
-	// enc.addElementSeparator()
-	// enc.buf.AppendByte('[')
-	// err := arr.MarshalLogArray(enc)
-	// enc.buf.AppendByte(']')
-	return nil
-}
-
-func (enc *otlpEncoder) AppendObject(obj zapcore.ObjectMarshaler) error {
-	// Close ONLY new openNamespaces that are created during
-	// AppendObject().
-	// old := enc.openNamespaces
-	// enc.openNamespaces = 0
-	// enc.addElementSeparator()
-	// enc.buf.AppendByte('{')
-	// err := obj.MarshalLogObject(enc)
-	// enc.buf.AppendByte('}')
-	// enc.closeOpenNamespaces()
-	// enc.openNamespaces = old
-	// return err
-	return nil
-}
-
-func (enc *otlpEncoder) AppendBool(val bool) {
-	enc.addElementSeparator()
-	enc.buf.AppendBool(val)
-}
-
-func (enc *otlpEncoder) AppendByteString(val []byte) {
-	enc.addElementSeparator()
-	enc.buf.AppendByte('"')
-	enc.safeAddByteString(val)
-	enc.buf.AppendByte('"')
-}
-
-// appendComplex appends the encoded form of the provided complex128 value.
-// precision specifies the encoding precision for the real and imaginary
-// components of the complex number.
-func (enc *otlpEncoder) appendComplex(val complex128, precision int) {
-	enc.addElementSeparator()
-	// Cast to a platform-independent, fixed-size type.
-	r, i := float64(real(val)), float64(imag(val))
-	enc.buf.AppendByte('"')
-	// Because we're always in a quoted string, we can use strconv without
-	// special-casing NaN and +/-Inf.
-	enc.buf.AppendFloat(r, precision)
-	// If imaginary part is less than 0, minus (-) sign is added by default
-	// by AppendFloat.
-	if i >= 0 {
-		enc.buf.AppendByte('+')
-	}
-	enc.buf.AppendFloat(i, precision)
-	enc.buf.AppendByte('i')
-	enc.buf.AppendByte('"')
-}
-
-func (enc *otlpEncoder) AppendDuration(val time.Duration) {
-	cur := enc.buf.Len()
-	if e := enc.EncodeDuration; e != nil {
-		e(val, enc)
-	}
-	if cur == enc.buf.Len() {
-		// User-supplied EncodeDuration is a no-op. Fall back to nanoseconds to keep
-		// JSON valid.
-		enc.AppendInt64(int64(val))
-	}
-}
-
-func (enc *otlpEncoder) AppendInt64(val int64) {
-	enc.addElementSeparator()
-	enc.buf.AppendInt(val)
-}
-
-func (enc *otlpEncoder) AppendReflected(val interface{}) error {
-	valueBytes, err := enc.encodeReflected(val)
-	if err != nil {
-		return err
-	}
-	enc.addElementSeparator()
-	_, err = enc.buf.Write(valueBytes)
-	return err
-}
-
-func (enc *otlpEncoder) AppendString(val string) {
-	enc.addElementSeparator()
-	enc.buf.AppendByte('"')
-	enc.safeAddString(val)
-	enc.buf.AppendByte('"')
-}
-
-func (enc *otlpEncoder) AppendTimeLayout(time time.Time, layout string) {
-	enc.addElementSeparator()
-	enc.buf.AppendByte('"')
-	enc.buf.AppendTime(time, layout)
-	enc.buf.AppendByte('"')
-}
-
-func (enc *otlpEncoder) AppendTime(val time.Time) {
-	cur := enc.buf.Len()
-	if e := enc.EncodeTime; e != nil {
-		e(val, enc)
-	}
-	if cur == enc.buf.Len() {
-		// User-supplied EncodeTime is a no-op. Fall back to nanos since epoch to keep
-		// output JSON valid.
-		enc.AppendInt64(val.UnixNano())
-	}
-}
-
-func (enc *otlpEncoder) AppendUint64(val uint64) {
-	enc.addElementSeparator()
-	enc.buf.AppendUint(val)
-}
-
-func (enc *otlpEncoder) AddInt(k string, v int)         { enc.AddInt64(k, int64(v)) }
-func (enc *otlpEncoder) AddInt32(k string, v int32)     { enc.AddInt64(k, int64(v)) }
-func (enc *otlpEncoder) AddInt16(k string, v int16)     { enc.AddInt64(k, int64(v)) }
-func (enc *otlpEncoder) AddInt8(k string, v int8)       { enc.AddInt64(k, int64(v)) }
-func (enc *otlpEncoder) AddUint(k string, v uint)       { enc.AddUint64(k, uint64(v)) }
-func (enc *otlpEncoder) AddUint32(k string, v uint32)   { enc.AddUint64(k, uint64(v)) }
-func (enc *otlpEncoder) AddUint16(k string, v uint16)   { enc.AddUint64(k, uint64(v)) }
-func (enc *otlpEncoder) AddUint8(k string, v uint8)     { enc.AddUint64(k, uint64(v)) }
-func (enc *otlpEncoder) AddUintptr(k string, v uintptr) { enc.AddUint64(k, uint64(v)) }
-func (enc *otlpEncoder) AppendComplex64(v complex64)    { enc.appendComplex(complex128(v), 32) }
-func (enc *otlpEncoder) AppendComplex128(v complex128)  { enc.appendComplex(complex128(v), 64) }
-func (enc *otlpEncoder) AppendFloat64(v float64)        { enc.appendFloat(v, 64) }
-func (enc *otlpEncoder) AppendFloat32(v float32)        { enc.appendFloat(float64(v), 32) }
-func (enc *otlpEncoder) AppendInt(v int)                { enc.AppendInt64(int64(v)) }
-func (enc *otlpEncoder) AppendInt32(v int32)            { enc.AppendInt64(int64(v)) }
-func (enc *otlpEncoder) AppendInt16(v int16)            { enc.AppendInt64(int64(v)) }
-func (enc *otlpEncoder) AppendInt8(v int8)              { enc.AppendInt64(int64(v)) }
-func (enc *otlpEncoder) AppendUint(v uint)              { enc.AppendUint64(uint64(v)) }
-func (enc *otlpEncoder) AppendUint32(v uint32)          { enc.AppendUint64(uint64(v)) }
-func (enc *otlpEncoder) AppendUint16(v uint16)          { enc.AppendUint64(uint64(v)) }
-func (enc *otlpEncoder) AppendUint8(v uint8)            { enc.AppendUint64(uint64(v)) }
-func (enc *otlpEncoder) AppendUintptr(v uintptr)        { enc.AppendUint64(uint64(v)) }
+func (enc *otlpEncoder) AddInt(k string, v int)         {}
+func (enc *otlpEncoder) AddInt32(k string, v int32)     {}
+func (enc *otlpEncoder) AddInt16(k string, v int16)     {}
+func (enc *otlpEncoder) AddInt8(k string, v int8)       {}
+func (enc *otlpEncoder) AddUint(k string, v uint)       {}
+func (enc *otlpEncoder) AddUint32(k string, v uint32)   {}
+func (enc *otlpEncoder) AddUint16(k string, v uint16)   {}
+func (enc *otlpEncoder) AddUint8(k string, v uint8)     {}
+func (enc *otlpEncoder) AddUintptr(k string, v uintptr) {}
 
 func (enc *otlpEncoder) Clone() zapcore.Encoder {
 	clone := enc.clone()
@@ -352,48 +176,11 @@ var levelMap = map[string]uint{
 	"fatal": 21,
 }
 
-func (enc *otlpEncoder) level(l int) lpb.SeverityNumber {
-	// In OpenTelemetry smaller numerical values in each range represent less
-	// important (less severe) events. Larger numerical values in each range
-	// represent more important (more severe) events.
-	//
-	// SeverityNumber range|Range name
-	// --------------------|----------
-	// 1-4                 |TRACE
-	// 5-8                 |DEBUG
-	// 9-12                |INFO
-	// 13-16               |WARN
-	// 17-20               |ERROR
-	// 21-24               |FATAL
-	//
-	// Logr verbosity levels decrease in significance the greater the value.
-	if l < 0 {
-		l = 0
-	}
-	if l > int(lpb.SeverityNumber_SEVERITY_NUMBER_WARN4) {
-		l = int(lpb.SeverityNumber_SEVERITY_NUMBER_WARN4)
-	}
-	return lpb.SeverityNumber(int(lpb.SeverityNumber_SEVERITY_NUMBER_WARN4) - l)
-}
-
 func (enc *otlpEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
 	final := enc.clone()
-	// final.buf.AppendByte('{')
-
 	if final.LevelKey != "" && final.EncodeLevel != nil {
 		final.log.SeverityNumber = lpb.SeverityNumber(levelMap[ent.Level.String()])
 		final.log.SeverityText = ent.Level.String()
-		// final.addKey("SeverityNumber")
-		// cur := final.buf.Len()
-		// // final.EncodeLevel(ent.Level, final)
-		// if cur == final.buf.Len() {
-		// 	// User-supplied EncodeLevel was a no-op. Fall back to strings to keep
-		// 	// output JSON valid.
-		// 	final.AppendUint(levelMap[ent.Level.String()])
-		// }
-
-		// final.addKey("SeverityText")
-		// final.AppendString(ent.Level.String())
 	}
 	if final.TimeKey != "" {
 		// final.AddTime(final.TimeKey, ent.Time)
@@ -464,24 +251,17 @@ func (enc *otlpEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (
 	// final.buf.AppendByte('}')
 	// final.buf.AppendString(final.LineEnding)
 
-	b, _ := json.Marshal(final.log)
+	// b, _ := json.Marshal(final.log)
+	data, err := proto.Marshal(&final.log)
+	if err != nil {
+		panic(err)
+	}
 
-	final.buf.AppendString(string(b))
+	final.buf.AppendString(string(data))
 	ret := final.buf
 	putOTLPEncoder(final)
 
 	return ret, nil
-}
-
-func (enc *otlpEncoder) truncate() {
-	enc.buf.Reset()
-}
-
-func (enc *otlpEncoder) closeOpenNamespaces() {
-	for i := 0; i < enc.openNamespaces; i++ {
-		enc.buf.AppendByte('}')
-	}
-	enc.openNamespaces = 0
 }
 
 func (enc *otlpEncoder) addKeyVal(key string, val *v1.AnyValue) {
@@ -489,14 +269,6 @@ func (enc *otlpEncoder) addKeyVal(key string, val *v1.AnyValue) {
 		Key:   key,
 		Value: val,
 	})
-	// enc.addElementSeparator()
-	// enc.buf.AppendByte('"')
-	// enc.safeAddString(key)
-	// enc.buf.AppendByte('"')
-	// enc.buf.AppendByte(':')
-	// if enc.spaced {
-	// 	enc.buf.AppendByte(' ')
-	// }
 }
 
 func (enc *otlpEncoder) addElementSeparator() {

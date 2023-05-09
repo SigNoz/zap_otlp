@@ -2,19 +2,22 @@ package zap_otlp_sync
 
 import (
 	"context"
-	"encoding/json"
 
 	collpb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
-	v1 "go.opentelemetry.io/proto/otlp/common/v1"
 	lpb "go.opentelemetry.io/proto/otlp/logs/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 type ResourceAttributes map[string]interface{}
 
-func NewOtlpSyncer(conn *grpc.ClientConn, resourceAttrs ResourceAttributes) *OtelSyncer {
+func NewOtlpSyncer(conn *grpc.ClientConn, batchSize int, resourceAttrs ResourceAttributes) *OtelSyncer {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	if batchSize == 0 {
+		batchSize = 100
+	}
 
 	return &OtelSyncer{
 		ctx,
@@ -22,6 +25,7 @@ func NewOtlpSyncer(conn *grpc.ClientConn, resourceAttrs ResourceAttributes) *Ote
 		resourceAttrs,
 		[][]byte{},
 		collpb.NewLogsServiceClient(conn),
+		batchSize,
 	}
 }
 
@@ -31,16 +35,16 @@ type OtelSyncer struct {
 	ResourceAttributes ResourceAttributes
 	values             [][]byte
 
-	client collpb.LogsServiceClient
+	client    collpb.LogsServiceClient
+	batchSize int
 }
 
 func (l OtelSyncer) pushToSigNoz() (err error) {
 	rec := []*lpb.LogRecord{}
 
 	for _, v := range l.values {
-		// not assigning the empty body structs throws an error
-		r := &lpb.LogRecord{Body: &v1.AnyValue{Value: &v1.AnyValue_StringValue{}}}
-		err := json.Unmarshal(v, &r)
+		r := &lpb.LogRecord{}
+		err = proto.Unmarshal([]byte(v), r)
 		if err != nil {
 			return err
 		}
@@ -65,6 +69,13 @@ func (l OtelSyncer) pushToSigNoz() (err error) {
 
 func (l *OtelSyncer) Write(p []byte) (n int, err error) {
 	l.values = append(l.values, p)
+	if len(l.values) >= l.batchSize {
+		err := l.Sync()
+		if err != nil {
+			return 0, err
+		}
+		l.values = [][]byte{}
+	}
 	return len(p), nil
 }
 
@@ -72,7 +83,6 @@ func (l OtelSyncer) Sync() error {
 	if err := l.pushToSigNoz(); err != nil {
 		return err
 	}
-
 	return nil
 }
 
