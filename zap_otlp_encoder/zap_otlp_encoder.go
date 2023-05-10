@@ -75,12 +75,12 @@ func NewOTLPEncoder(cfg zapcore.EncoderConfig) zapcore.Encoder {
 }
 
 func (enc *otlpEncoder) AddArray(key string, arr zapcore.ArrayMarshaler) error {
-	// todo : implement this
+	// todo : implement this later
 	return nil
 }
 
 func (enc *otlpEncoder) AddObject(key string, obj zapcore.ObjectMarshaler) error {
-	// todo : implement this
+	// todo : implement this later
 	return nil
 }
 
@@ -101,15 +101,16 @@ func (enc *otlpEncoder) AddBool(key string, val bool) {
 }
 
 func (enc *otlpEncoder) AddComplex128(key string, val complex128) {
-	// todo: implement this
+	// todo: implement this later
 }
 
 func (enc *otlpEncoder) AddComplex64(key string, val complex64) {
-	// todo: implement this
+	// todo: implement this later
 }
 
 func (enc *otlpEncoder) AddDuration(key string, val time.Duration) {
-	// todo: implement this
+	// todo: implement this later
+
 }
 
 func (enc *otlpEncoder) AddFloat64(key string, val float64) {
@@ -129,7 +130,7 @@ func (enc *otlpEncoder) AddUint64(key string, val uint64) {
 }
 
 func (enc *otlpEncoder) AddTime(key string, val time.Time) {
-	// todo: implement this
+	// not required
 }
 
 func (enc *otlpEncoder) AddReflected(key string, obj interface{}) error {
@@ -137,9 +138,7 @@ func (enc *otlpEncoder) AddReflected(key string, obj interface{}) error {
 }
 
 func (enc *otlpEncoder) OpenNamespace(key string) {
-	// enc.addKey(key)
-	// enc.buf.AppendByte('{')
-	// enc.openNamespaces++
+	// todo: implement this later
 }
 
 func (enc *otlpEncoder) AddInt(k string, v int)         {}
@@ -184,7 +183,6 @@ func (enc *otlpEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (
 		final.log.SeverityText = ent.Level.String()
 	}
 	if final.TimeKey != "" {
-		// final.AddTime(final.TimeKey, ent.Time)
 		final.log.TimeUnixNano = uint64(ent.Time.UnixNano())
 	}
 	if ent.LoggerName != "" && final.NameKey != "" {
@@ -214,36 +212,22 @@ func (enc *otlpEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (
 		// 	final.AppendString(ent.LoggerName)
 		// }
 	}
-	// if ent.Caller.Defined {
-	// 	if final.CallerKey != "" {
-	// 		final.addKey(final.CallerKey)
-	// 		cur := final.buf.Len()
-	// 		final.EncodeCaller(ent.Caller, final)
-	// 		if cur == final.buf.Len() {
-	// 			// User-supplied EncodeCaller was a no-op. Fall back to strings to
-	// 			// keep output JSON valid.
-	// 			final.AppendString(ent.Caller.String())
-	// 		}
-	// 	}
-	// 	if final.FunctionKey != "" {
-	// 		final.addKey(final.FunctionKey)
-	// 		final.AppendString(ent.Caller.Function)
-	// 	}
-	// }
+	if ent.Caller.Defined {
+		if final.CallerKey != "" {
+			final.addKeyVal(final.CallerKey, &v1.AnyValue{Value: &v1.AnyValue_StringValue{StringValue: ent.Caller.String()}})
+		}
+		if final.FunctionKey != "" {
+			final.addKeyVal(final.FunctionKey, &v1.AnyValue{Value: &v1.AnyValue_StringValue{StringValue: ent.Caller.Function}})
+		}
+	}
 	if final.MessageKey != "" {
 		final.log.Body = &v1.AnyValue{
 			Value: &v1.AnyValue_StringValue{
 				StringValue: ent.Message,
 			},
 		}
-		// final.addKey(enc.MessageKey)
-		// final.addKey("message")
-		// final.AppendString(ent.Message)
 	}
-	// if enc.buf.Len() > 0 {
-	// 	final.addElementSeparator()
-	// 	final.buf.Write(enc.buf.Bytes())
-	// }
+
 	addFields(final, fields)
 	// final.closeOpenNamespaces()
 	// if ent.Stack != "" && final.StacktraceKey != "" {
@@ -251,8 +235,6 @@ func (enc *otlpEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (
 	// }
 	// final.buf.AppendByte('}')
 	// final.buf.AppendString(final.LineEnding)
-
-	// b, _ := json.Marshal(final.log)
 	data, err := proto.Marshal(final.log)
 	if err != nil {
 		panic(err)
