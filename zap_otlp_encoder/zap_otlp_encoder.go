@@ -194,23 +194,6 @@ func (enc *otlpEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (
 				},
 			},
 		})
-
-		// final.addKey(final.NameKey)
-		// cur := final.buf.Len()
-		// nameEncoder := final.EncodeName
-
-		// // if no name encoder provided, fall back to FullNameEncoder for backwards
-		// // compatibility
-		// if nameEncoder == nil {
-		// 	nameEncoder = zapcore.FullNameEncoder
-		// }
-
-		// nameEncoder(ent.LoggerName, final)
-		// if cur == final.buf.Len() {
-		// 	// User-supplied EncodeName was a no-op. Fall back to strings to
-		// 	// keep output JSON valid.
-		// 	final.AppendString(ent.LoggerName)
-		// }
 	}
 	if ent.Caller.Defined {
 		if final.CallerKey != "" {
@@ -229,12 +212,6 @@ func (enc *otlpEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (
 	}
 
 	addFields(final, fields)
-	// final.closeOpenNamespaces()
-	// if ent.Stack != "" && final.StacktraceKey != "" {
-	// 	final.AddString(final.StacktraceKey, ent.Stack)
-	// }
-	// final.buf.AppendByte('}')
-	// final.buf.AppendString(final.LineEnding)
 	data, err := proto.Marshal(final.log)
 	if err != nil {
 		panic(err)
