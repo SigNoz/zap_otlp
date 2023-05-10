@@ -3,6 +3,7 @@ package zap_otlp_sync
 import (
 	"context"
 
+	"go.opentelemetry.io/otel/sdk/instrumentation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	collpb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	cv1 "go.opentelemetry.io/proto/otlp/common/v1"
@@ -12,17 +13,24 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func NewOtlpSyncer(conn *grpc.ClientConn, batchSize int, resSchema string, res *resource.Resource) *OtelSyncer {
+type Options struct {
+	BatchSize      int
+	ResourceSchema string
+	Scope          *instrumentation.Scope
+	Resource       *resource.Resource
+}
+
+func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if batchSize == 0 {
-		batchSize = 100
+	if options.BatchSize == 0 {
+		options.BatchSize = 100
 	}
 
 	var rattrs *rv1.Resource
-	if res != nil {
-		iter := res.Iter()
+	if options.Resource != nil {
+		iter := options.Resource.Iter()
 		attrs := make([]*cv1.KeyValue, 0, iter.Len())
 		for iter.Next() {
 			attr := iter.Attribute()
@@ -34,14 +42,23 @@ func NewOtlpSyncer(conn *grpc.ClientConn, batchSize int, resSchema string, res *
 		rattrs = &rv1.Resource{Attributes: attrs}
 	}
 
+	var instrumentationScope *cv1.InstrumentationScope
+	if options.Scope != nil {
+		instrumentationScope = &cv1.InstrumentationScope{
+			Name:    options.Scope.Name,
+			Version: options.Scope.Version,
+		}
+	}
+
 	return &OtelSyncer{
 		ctx,
 		cancel,
 		rattrs,
-		resSchema,
+		options.ResourceSchema,
+		instrumentationScope,
 		[][]byte{},
 		collpb.NewLogsServiceClient(conn),
-		batchSize,
+		options.BatchSize,
 	}
 }
 
@@ -50,6 +67,7 @@ type OtelSyncer struct {
 	close     context.CancelFunc
 	res       *rv1.Resource
 	resSchema string
+	scope     *cv1.InstrumentationScope
 	values    [][]byte
 
 	client    collpb.LogsServiceClient
@@ -67,19 +85,23 @@ func (l OtelSyncer) pushToSigNoz() (err error) {
 		}
 		rec = append(rec, r)
 	}
-	// recently adding for otlp
+
 	sl := &lpb.ScopeLogs{LogRecords: rec}
-	// if l.scope != nil {
-	// 	sl.SchemaUrl, sl.Scope = l.scopeSchema, l.scope
-	// }
+	if l.scope != nil {
+		sl.SchemaUrl, sl.Scope = l.resSchema, l.scope
+	}
 
 	rl := &lpb.ResourceLogs{ScopeLogs: []*lpb.ScopeLogs{sl}}
 	if l.res != nil {
 		rl.SchemaUrl, rl.Resource = l.resSchema, l.res
 	}
-	_, _ = l.client.Export(context.Background(), &collpb.ExportLogsServiceRequest{
+	_, err = l.client.Export(context.Background(), &collpb.ExportLogsServiceRequest{
 		ResourceLogs: []*lpb.ResourceLogs{rl},
 	})
+	// TODO: how to handle partial failure and error
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

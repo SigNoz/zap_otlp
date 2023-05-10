@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 
+	"go.opentelemetry.io/otel/sdk/instrumentation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdk "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
@@ -25,7 +26,7 @@ import (
 var targetPtr = flag.String("target", "127.0.0.1:4317", "OTLP target")
 
 const (
-	lib    = "github.com/MrAlias/otlpr/example"
+	lib    = "github.com/SigNoz/zap_otlp/example"
 	libVer = "v0.1.0"
 )
 
@@ -70,16 +71,18 @@ func setup(ctx context.Context, conn *grpc.ClientConn) (trace.Tracer, *zap.Logge
 	consoleEncoder := zapcore.NewConsoleEncoder(config)
 	defaultLogLevel := zapcore.DebugLevel
 
-	ws := zapcore.AddSync(zapotlpsync.NewOtlpSyncer(conn, 100, semconv.SchemaURL, res))
+	scope := instrumentation.Scope{Name: lib, Version: libVer}
+	ws := zapcore.AddSync(zapotlpsync.NewOtlpSyncer(conn, zapotlpsync.Options{
+		BatchSize:      100,
+		ResourceSchema: semconv.SchemaURL,
+		Scope:          &scope,
+		Resource:       res,
+	}))
 	core := zapcore.NewTee(
 		zapcore.NewCore(consoleEncoder, os.Stdout, defaultLogLevel),
 		zapcore.NewCore(otlpEncoder, zapcore.NewMultiWriteSyncer(ws), defaultLogLevel),
 	)
 	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
-
-	// l = otlpr.WithResource(l, res)
-	// scope := instrumentation.Scope{Name: lib, Version: libVer}
-	// l = otlpr.WithScope(l, scope)
 
 	return tracer, logger, nil
 }
