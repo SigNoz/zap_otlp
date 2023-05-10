@@ -129,6 +129,10 @@ func (l OtelSyncer) Sync() error {
 }
 
 func (l OtelSyncer) Close() error {
+	err := l.Sync()
+	if err != nil {
+		return err
+	}
 	l.close()
 	return nil
 }
