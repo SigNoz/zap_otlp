@@ -109,8 +109,10 @@ func (enc *otlpEncoder) AddComplex64(key string, val complex64) {
 }
 
 func (enc *otlpEncoder) AddDuration(key string, val time.Duration) {
-	// todo: implement this later
+	// TODO: allow user to specify the unit of duration using DurationEncoder in config.EncodeDuration
 
+	// all duration will be in milliseconds
+	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_IntValue{IntValue: int64((val.Nanoseconds() / 1e6))}})
 }
 
 func (enc *otlpEncoder) AddFloat64(key string, val float64) {
