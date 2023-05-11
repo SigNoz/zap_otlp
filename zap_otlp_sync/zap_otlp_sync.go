@@ -16,11 +16,28 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+type OtelSyncer struct {
+	ctx       context.Context
+	close     context.CancelFunc
+	res       *rv1.Resource
+	resSchema string
+	scope     *cv1.InstrumentationScope
+	values    [][]byte
+	queue     chan []byte
+
+	client        collpb.LogsServiceClient
+	batchSize     int
+	sendBatch     chan bool
+	closeExporter chan bool
+	valueMutex    sync.Mutex
+}
+
 type Options struct {
-	BatchSize      int
-	ResourceSchema string
-	Scope          *instrumentation.Scope
-	Resource       *resource.Resource
+	BatchSize          int
+	BatchIntervalInSec int
+	ResourceSchema     string
+	Scope              *instrumentation.Scope
+	Resource           *resource.Resource
 }
 
 func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
@@ -29,6 +46,10 @@ func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
 
 	if options.BatchSize == 0 {
 		options.BatchSize = 100
+	}
+
+	if options.BatchIntervalInSec == 0 {
+		options.BatchIntervalInSec = 5
 	}
 
 	var rattrs *rv1.Resource
@@ -60,6 +81,7 @@ func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
 		options.ResourceSchema,
 		instrumentationScope,
 		[][]byte{},
+		make(chan []byte, options.BatchSize), // keeping queue size as batch size
 		collpb.NewLogsServiceClient(conn),
 		options.BatchSize,
 		make(chan bool),
@@ -67,13 +89,12 @@ func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
 		sync.Mutex{},
 	}
 
-	// start exporter
-	go syncer.startExporter(5)
+	go syncer.processQueue(options.BatchIntervalInSec)
 
 	return syncer
 }
 
-func (l *OtelSyncer) startExporter(intervalInSec int) {
+func (l *OtelSyncer) processQueue(intervalInSec int) {
 	ticker := time.NewTicker(time.Duration(intervalInSec) * time.Second)
 	defer ticker.Stop()
 	for {
@@ -83,25 +104,18 @@ func (l *OtelSyncer) startExporter(intervalInSec int) {
 			return
 		case <-ticker.C:
 			l.pushData()
+		case data := <-l.queue:
+			l.valueMutex.Lock()
+			l.values = append(l.values, data)
+			shouldExport := len(l.values) >= l.batchSize
+			l.valueMutex.Unlock()
+			if shouldExport {
+				l.pushData()
+			}
 		case <-l.sendBatch:
 			l.pushData()
 		}
 	}
-}
-
-type OtelSyncer struct {
-	ctx       context.Context
-	close     context.CancelFunc
-	res       *rv1.Resource
-	resSchema string
-	scope     *cv1.InstrumentationScope
-	values    [][]byte
-
-	client        collpb.LogsServiceClient
-	batchSize     int
-	sendBatch     chan bool
-	closeExporter chan bool
-	valueMutex    sync.Mutex
 }
 
 func (l *OtelSyncer) pushData() (err error) {
@@ -119,6 +133,10 @@ func (l *OtelSyncer) pushData() (err error) {
 	}
 	l.values = [][]byte{} // clean the values
 	l.valueMutex.Unlock()
+
+	if len(rec) == 0 {
+		return nil
+	}
 
 	sl := &lpb.ScopeLogs{LogRecords: rec}
 	if l.scope != nil {
@@ -144,14 +162,10 @@ func (l *OtelSyncer) Write(record []byte) (n int, err error) {
 	// create deep copyy of the data
 	data := make([]byte, len(record))
 	copy(data, record)
-	l.valueMutex.Lock()
-	l.values = append(l.values, data)
-	l.valueMutex.Unlock()
-	if len(l.values) >= l.batchSize {
-		// TODO: how to handle partial failure and error
-		l.sendBatch <- true
-	}
-	return len(record), nil
+
+	// just add the data to the queue
+	l.queue <- data
+	return len(data), nil
 }
 
 func (l *OtelSyncer) Sync() error {
