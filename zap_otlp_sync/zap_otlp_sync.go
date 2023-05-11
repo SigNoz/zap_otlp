@@ -2,6 +2,9 @@ package zap_otlp_sync
 
 import (
 	"context"
+	"fmt"
+	"sync"
+	"time"
 
 	"go.opentelemetry.io/otel/sdk/instrumentation"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -50,7 +53,7 @@ func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
 		}
 	}
 
-	return &OtelSyncer{
+	syncer := &OtelSyncer{
 		ctx,
 		cancel,
 		rattrs,
@@ -59,6 +62,30 @@ func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
 		[][]byte{},
 		collpb.NewLogsServiceClient(conn),
 		options.BatchSize,
+		make(chan bool),
+		make(chan bool),
+		sync.Mutex{},
+	}
+
+	// start exporter
+	go syncer.startExporter(5)
+
+	return syncer
+}
+
+func (l *OtelSyncer) startExporter(intervalInSec int) {
+	ticker := time.NewTicker(time.Duration(intervalInSec) * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-l.closeExporter:
+			fmt.Println("shutting down syncer batcher")
+			return
+		case <-ticker.C:
+			l.pushData()
+		case <-l.sendBatch:
+			l.pushData()
+		}
 	}
 }
 
@@ -70,21 +97,28 @@ type OtelSyncer struct {
 	scope     *cv1.InstrumentationScope
 	values    [][]byte
 
-	client    collpb.LogsServiceClient
-	batchSize int
+	client        collpb.LogsServiceClient
+	batchSize     int
+	sendBatch     chan bool
+	closeExporter chan bool
+	valueMutex    sync.Mutex
 }
 
-func (l OtelSyncer) pushData() (err error) {
+func (l *OtelSyncer) pushData() (err error) {
 	rec := []*lpb.LogRecord{}
 
+	l.valueMutex.Lock()
 	for _, v := range l.values {
 		r := &lpb.LogRecord{}
 		err = proto.Unmarshal([]byte(v), r)
 		if err != nil {
+			l.valueMutex.Unlock()
 			return err
 		}
 		rec = append(rec, r)
 	}
+	l.values = [][]byte{} // clean the values
+	l.valueMutex.Unlock()
 
 	sl := &lpb.ScopeLogs{LogRecords: rec}
 	if l.scope != nil {
@@ -110,29 +144,27 @@ func (l *OtelSyncer) Write(record []byte) (n int, err error) {
 	// create deep copyy of the data
 	data := make([]byte, len(record))
 	copy(data, record)
+	l.valueMutex.Lock()
 	l.values = append(l.values, data)
+	l.valueMutex.Unlock()
 	if len(l.values) >= l.batchSize {
-		err := l.Sync()
-		if err != nil {
-			return 0, err
-		}
-		l.values = [][]byte{}
+		// TODO: how to handle partial failure and error
+		l.sendBatch <- true
 	}
 	return len(record), nil
 }
 
-func (l OtelSyncer) Sync() error {
-	if err := l.pushData(); err != nil {
-		return err
-	}
+func (l *OtelSyncer) Sync() error {
+	l.sendBatch <- true
 	return nil
 }
 
-func (l OtelSyncer) Close() error {
+func (l *OtelSyncer) Close() error {
 	err := l.Sync()
 	if err != nil {
 		return err
 	}
+	l.closeExporter <- true
 	l.close()
 	return nil
 }
