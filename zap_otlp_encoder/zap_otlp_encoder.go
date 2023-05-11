@@ -56,12 +56,6 @@ type otlpEncoder struct {
 
 // NewkvEncoder creates a key=value encoder
 func NewOTLPEncoder(cfg zapcore.EncoderConfig) zapcore.Encoder {
-	if cfg.SkipLineEnding {
-		cfg.LineEnding = ""
-	} else if cfg.LineEnding == "" {
-		cfg.LineEnding = zapcore.DefaultLineEnding
-	}
-
 	// If no EncoderConfig.NewReflectedEncoder is provided by the user, then use default
 	if cfg.NewReflectedEncoder == nil {
 		cfg.NewReflectedEncoder = defaultReflectedEncoder
