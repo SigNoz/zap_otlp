@@ -74,7 +74,7 @@ type OtelSyncer struct {
 	batchSize int
 }
 
-func (l OtelSyncer) pushToSigNoz() (err error) {
+func (l OtelSyncer) pushData() (err error) {
 	rec := []*lpb.LogRecord{}
 
 	for _, v := range l.values {
@@ -122,7 +122,7 @@ func (l *OtelSyncer) Write(record []byte) (n int, err error) {
 }
 
 func (l OtelSyncer) Sync() error {
-	if err := l.pushToSigNoz(); err != nil {
+	if err := l.pushData(); err != nil {
 		return err
 	}
 	return nil
