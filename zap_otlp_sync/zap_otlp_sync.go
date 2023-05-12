@@ -75,18 +75,18 @@ func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
 	}
 
 	syncer := &OtelSyncer{
-		ctx,
-		cancel,
-		rattrs,
-		options.ResourceSchema,
-		instrumentationScope,
-		[][]byte{},
-		make(chan []byte, options.BatchSize), // keeping queue size as batch size
-		collpb.NewLogsServiceClient(conn),
-		options.BatchSize,
-		make(chan bool),
-		make(chan bool),
-		sync.Mutex{},
+		ctx:           ctx,
+		close:         cancel,
+		res:           rattrs,
+		resSchema:     options.ResourceSchema,
+		scope:         instrumentationScope,
+		values:        [][]byte{},
+		queue:         make(chan []byte, options.BatchSize), // keeping queue size as batch size
+		client:        collpb.NewLogsServiceClient(conn),
+		batchSize:     options.BatchSize,
+		sendBatch:     make(chan bool),
+		closeExporter: make(chan bool),
+		valueMutex:    sync.Mutex{},
 	}
 
 	go syncer.processQueue(options.BatchIntervalInSec)
