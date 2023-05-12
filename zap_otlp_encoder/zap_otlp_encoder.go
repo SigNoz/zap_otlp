@@ -150,6 +150,8 @@ func (enc *otlpEncoder) AddUintptr(k string, v uintptr) {}
 func (enc *otlpEncoder) Clone() zapcore.Encoder {
 	clone := enc.clone()
 	clone.buf.Write(enc.buf.Bytes())
+	clone.log = &lpb.LogRecord{}
+	*clone.log = *enc.log
 	return clone
 }
 
