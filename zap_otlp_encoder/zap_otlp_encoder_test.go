@@ -1,7 +1,6 @@
 package zap_otlp_encoder
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -120,10 +119,10 @@ func TestOTLPEncodeEntry(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			// For debugging purpose uncomment the lines below
-			r := &lv1.LogRecord{}
-			err = proto.Unmarshal([]byte(buf.String()), r)
-			So(err, ShouldBeNil)
-			fmt.Println(r)
+			// r := &lv1.LogRecord{}
+			// err = proto.Unmarshal([]byte(buf.String()), r)
+			// So(err, ShouldBeNil)
+			// fmt.Println(r)
 
 			d, err := proto.Marshal(tt.expected)
 			So(err, ShouldBeNil)
