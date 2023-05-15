@@ -8,6 +8,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
+	"time"
 
 	"go.opentelemetry.io/otel/sdk/instrumentation"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -45,12 +47,12 @@ func (a App) Hello(ctx context.Context, user string) error {
 	ctx, span = a.tracer.Start(ctx, "Hello")
 	defer span.End()
 
-	a.logger.Info("hello from the function to user: "+user, zap.String("user", user), zapotlp.SpanCtx(ctx))
+	a.logger.Info("hello from the function to user: "+user, zap.String("user", user), zapotlp.SpanCtx(ctx), zap.Duration("duration", time.Second*2))
 
 	return nil
 }
 
-func setup(ctx context.Context, conn *grpc.ClientConn) (trace.Tracer, *zap.Logger, error) {
+func setup(ctx context.Context, conn *grpc.ClientConn) (trace.Tracer, *zap.Logger, *zapotlpsync.OtelSyncer, error) {
 	// exp, err := otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(conn))
 	// if err != nil {
 	// 	return nil, zap.NewNop(), err
@@ -67,24 +69,27 @@ func setup(ctx context.Context, conn *grpc.ClientConn) (trace.Tracer, *zap.Logge
 	tracer := tp.Tracer(lib, trace.WithInstrumentationVersion(libVer))
 
 	config := zap.NewProductionEncoderConfig()
+	config.EncodeDuration = zapcore.StringDurationEncoder
 	otlpEncoder := zapotlpencoder.NewOTLPEncoder(config)
 	consoleEncoder := zapcore.NewConsoleEncoder(config)
 	defaultLogLevel := zapcore.DebugLevel
 
 	scope := instrumentation.Scope{Name: lib, Version: libVer}
-	ws := zapcore.AddSync(zapotlpsync.NewOtlpSyncer(conn, zapotlpsync.Options{
-		BatchSize:      100,
+	otlpSync := zapotlpsync.NewOtlpSyncer(conn, zapotlpsync.Options{
+		BatchSize:      2,
 		ResourceSchema: semconv.SchemaURL,
 		Scope:          &scope,
 		Resource:       res,
-	}))
+	})
+
+	ws := zapcore.AddSync(otlpSync)
 	core := zapcore.NewTee(
 		zapcore.NewCore(consoleEncoder, os.Stdout, defaultLogLevel),
 		zapcore.NewCore(otlpEncoder, zapcore.NewMultiWriteSyncer(ws), defaultLogLevel),
 	)
 	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 
-	return tracer, logger, nil
+	return tracer, logger, otlpSync, nil
 }
 
 func main() {
@@ -97,10 +102,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	tracer, logger, err := setup(ctx, conn)
+	tracer, logger, otlpSync, err := setup(ctx, conn)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// close the syncer before shutdown
+	defer otlpSync.Close()
 
 	var span trace.Span
 	ctx, span = tracer.Start(ctx, "main")
@@ -108,8 +116,10 @@ func main() {
 
 	app := NewApp(tracer, logger)
 
-	app.Hello(ctx, "user: xyz")
-	app.Hello(ctx, "user: newuser")
-
+	for i := 0; i < 5; i++ {
+		time.Sleep(1 * time.Second)
+		app.Hello(ctx, strconv.Itoa(i)+"user: xyz")
+	}
 	logger.Sync()
+
 }
