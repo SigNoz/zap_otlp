@@ -1,10 +1,15 @@
 package zap_otlp_encoder
 
 import (
+	"context"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/SigNoz/zap_otlp"
 	. "github.com/smartystreets/goconvey/convey"
+	sdk "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 	cv1 "go.opentelemetry.io/proto/otlp/common/v1"
 	lv1 "go.opentelemetry.io/proto/otlp/logs/v1"
 	"google.golang.org/protobuf/proto"
@@ -13,7 +18,23 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+const (
+	lib    = "github.com/SigNoz/zap_otlp/example"
+	libVer = "v0.1.0"
+)
+
 func TestOTLPEncodeEntry(t *testing.T) {
+
+	// ctx for trace and span
+	tp := sdk.NewTracerProvider()
+	tracer := tp.Tracer(lib, trace.WithInstrumentationVersion(libVer))
+	ctx := context.Background()
+	var span trace.Span
+	ctx, span = tracer.Start(ctx, "main")
+	defer span.End()
+	sid := span.SpanContext().SpanID()
+	tid := span.SpanContext().TraceID()
+
 	type bar struct {
 		Key string  `json:"key"`
 		Val float64 `json:"val"`
@@ -109,6 +130,30 @@ func TestOTLPEncodeEntry(t *testing.T) {
 				}),
 			},
 		},
+		{
+			name: "Test 4",
+			desc: "Log with traceId and spanId",
+			expected: &lv1.LogRecord{
+				TimeUnixNano:   1529426022000000099,
+				SeverityNumber: lv1.SeverityNumber_SEVERITY_NUMBER_INFO,
+				SeverityText:   "info",
+				Body:           &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "lob law"}},
+				Attributes: []*cv1.KeyValue{
+					{Key: "logger", Value: &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "bob"}}},
+				},
+				TraceId: tid[:],
+				SpanId:  sid[:],
+			},
+			ent: zapcore.Entry{
+				Level:      zapcore.InfoLevel,
+				Time:       time.Date(2018, 6, 19, 16, 33, 42, 99, time.UTC),
+				LoggerName: "bob",
+				Message:    "lob law",
+			},
+			fields: []zapcore.Field{
+				zap_otlp.SpanCtx(ctx),
+			},
+		},
 	}
 
 	enc := NewOTLPEncoder(zap.NewProductionEncoderConfig())
@@ -119,10 +164,10 @@ func TestOTLPEncodeEntry(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			// For debugging purpose uncomment the lines below
-			// r := &lv1.LogRecord{}
-			// err = proto.Unmarshal([]byte(buf.String()), r)
-			// So(err, ShouldBeNil)
-			// fmt.Println(r)
+			r := &lv1.LogRecord{}
+			err = proto.Unmarshal([]byte(buf.String()), r)
+			So(err, ShouldBeNil)
+			fmt.Println(r)
 
 			d, err := proto.Marshal(tt.expected)
 			So(err, ShouldBeNil)
