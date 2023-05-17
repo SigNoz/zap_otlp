@@ -2,6 +2,7 @@ package zap_otlp_sync
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,7 +21,6 @@ type OtelSyncer struct {
 	close     context.CancelFunc
 	res       *rv1.Resource
 	resSchema string
-	scope     *cv1.InstrumentationScope
 	values    [][]byte
 	queue     chan []byte
 
@@ -64,20 +64,11 @@ func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
 		rattrs = &rv1.Resource{Attributes: attrs}
 	}
 
-	var instrumentationScope *cv1.InstrumentationScope
-	if options.Scope != nil {
-		instrumentationScope = &cv1.InstrumentationScope{
-			Name:    options.Scope.Name,
-			Version: options.Scope.Version,
-		}
-	}
-
 	syncer := &OtelSyncer{
 		ctx:        ctx,
 		close:      cancel,
 		res:        rattrs,
 		resSchema:  options.ResourceSchema,
-		scope:      instrumentationScope,
 		values:     [][]byte{},
 		queue:      make(chan []byte, options.BatchSize), // keeping queue size as batch size
 		client:     collpb.NewLogsServiceClient(conn),
@@ -119,17 +110,18 @@ func (l *OtelSyncer) pushData() (err error) {
 	l.pushDataWg.Add(1)
 	defer l.pushDataWg.Done()
 
-	rec := []*lpb.LogRecord{}
+	rec := map[string][]*lpb.LogRecord{}
 
 	l.valueMutex.Lock()
 	for _, v := range l.values {
+		data := strings.Split(string(v), "#SIGNOZ#")
 		r := &lpb.LogRecord{}
-		err = proto.Unmarshal([]byte(v), r)
+		err = proto.Unmarshal([]byte(data[1]), r)
 		if err != nil {
 			l.valueMutex.Unlock()
 			return err
 		}
-		rec = append(rec, r)
+		rec[data[0]] = append(rec[data[0]], r)
 	}
 	l.values = [][]byte{} // clean the values
 	l.valueMutex.Unlock()
@@ -138,12 +130,18 @@ func (l *OtelSyncer) pushData() (err error) {
 		return nil
 	}
 
-	sl := &lpb.ScopeLogs{LogRecords: rec}
-	if l.scope != nil {
-		sl.SchemaUrl, sl.Scope = l.resSchema, l.scope
+	rl := &lpb.ResourceLogs{ScopeLogs: []*lpb.ScopeLogs{}}
+	for logger, records := range rec {
+		sl := &lpb.ScopeLogs{LogRecords: records}
+		if logger != "" {
+			sl.SchemaUrl, sl.Scope = l.resSchema, &cv1.InstrumentationScope{
+				Name:    "logger",
+				Version: logger,
+			}
+		}
+		rl.ScopeLogs = append(rl.ScopeLogs, sl)
 	}
 
-	rl := &lpb.ResourceLogs{ScopeLogs: []*lpb.ScopeLogs{sl}}
 	if l.res != nil {
 		rl.SchemaUrl, rl.Resource = l.resSchema, l.res
 	}

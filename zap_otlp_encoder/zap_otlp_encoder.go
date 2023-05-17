@@ -167,6 +167,7 @@ var levelMap = map[string]lpb.SeverityNumber{
 
 func (enc *otlpEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
 	final := enc.clone()
+	logger := ""
 	if final.LevelKey != "" && final.EncodeLevel != nil {
 		final.log.SeverityNumber = levelMap[ent.Level.String()]
 		final.log.SeverityText = lpb.SeverityNumber_name[int32(final.log.SeverityNumber)]
@@ -174,15 +175,9 @@ func (enc *otlpEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (
 	if final.TimeKey != "" {
 		final.log.TimeUnixNano = uint64(ent.Time.UnixNano())
 	}
-	if ent.LoggerName != "" && final.NameKey != "" {
-		final.log.Attributes = append(enc.log.Attributes, &v1.KeyValue{
-			Key: "logger",
-			Value: &v1.AnyValue{
-				Value: &v1.AnyValue_StringValue{
-					StringValue: ent.LoggerName,
-				},
-			},
-		})
+	if ent.LoggerName != "" {
+		// This will be converted to instrumentation scope later
+		logger = ent.LoggerName
 	}
 	if ent.Caller.Defined {
 		if final.CallerKey != "" {
@@ -206,7 +201,7 @@ func (enc *otlpEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (
 		panic(err)
 	}
 
-	final.buf.AppendString(string(data))
+	final.buf.AppendString(logger + "#SIGNOZ#" + string(data))
 	ret := final.buf
 	putOTLPEncoder(final)
 
