@@ -24,12 +24,11 @@ type OtelSyncer struct {
 	values    [][]byte
 	queue     chan []byte
 
-	client        collpb.LogsServiceClient
-	batchSize     int
-	sendBatch     chan bool
-	closeExporter chan bool
-	valueMutex    sync.Mutex
-	pushDataWg    sync.WaitGroup
+	client     collpb.LogsServiceClient
+	batchSize  int
+	sendBatch  chan bool
+	valueMutex sync.Mutex
+	pushDataWg sync.WaitGroup
 }
 
 type Options struct {
@@ -42,7 +41,6 @@ type Options struct {
 
 func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	if options.BatchSize == 0 {
 		options.BatchSize = 100
@@ -75,19 +73,18 @@ func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
 	}
 
 	syncer := &OtelSyncer{
-		ctx:           ctx,
-		close:         cancel,
-		res:           rattrs,
-		resSchema:     options.ResourceSchema,
-		scope:         instrumentationScope,
-		values:        [][]byte{},
-		queue:         make(chan []byte, options.BatchSize), // keeping queue size as batch size
-		client:        collpb.NewLogsServiceClient(conn),
-		batchSize:     options.BatchSize,
-		sendBatch:     make(chan bool),
-		closeExporter: make(chan bool),
-		valueMutex:    sync.Mutex{},
-		pushDataWg:    sync.WaitGroup{},
+		ctx:        ctx,
+		close:      cancel,
+		res:        rattrs,
+		resSchema:  options.ResourceSchema,
+		scope:      instrumentationScope,
+		values:     [][]byte{},
+		queue:      make(chan []byte, options.BatchSize), // keeping queue size as batch size
+		client:     collpb.NewLogsServiceClient(conn),
+		batchSize:  options.BatchSize,
+		sendBatch:  make(chan bool),
+		valueMutex: sync.Mutex{},
+		pushDataWg: sync.WaitGroup{},
 	}
 
 	go syncer.processQueue(options.BatchInterval)
@@ -100,7 +97,7 @@ func (l *OtelSyncer) processQueue(interval time.Duration) {
 	defer ticker.Stop()
 	for {
 		select {
-		case <-l.closeExporter:
+		case <-l.ctx.Done():
 			return
 		case <-ticker.C:
 			l.pushData()
@@ -181,8 +178,7 @@ func (l *OtelSyncer) Close() error {
 	if err != nil {
 		return err
 	}
-	l.closeExporter <- true
-	l.pushDataWg.Wait()
 	l.close()
+	l.pushDataWg.Wait()
 	return nil
 }
