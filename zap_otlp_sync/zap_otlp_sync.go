@@ -33,11 +33,11 @@ type OtelSyncer struct {
 }
 
 type Options struct {
-	BatchSize          int
-	BatchIntervalInSec int
-	ResourceSchema     string
-	Scope              *instrumentation.Scope
-	Resource           *resource.Resource
+	BatchSize      int
+	BatchInterval  time.Duration
+	ResourceSchema string
+	Scope          *instrumentation.Scope
+	Resource       *resource.Resource
 }
 
 func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
@@ -48,8 +48,8 @@ func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
 		options.BatchSize = 100
 	}
 
-	if options.BatchIntervalInSec == 0 {
-		options.BatchIntervalInSec = 5
+	if options.BatchInterval == 0 {
+		options.BatchInterval = time.Duration(5) * time.Second
 	}
 
 	var rattrs *rv1.Resource
@@ -90,13 +90,13 @@ func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
 		pushDataWg:    sync.WaitGroup{},
 	}
 
-	go syncer.processQueue(options.BatchIntervalInSec)
+	go syncer.processQueue(options.BatchInterval)
 
 	return syncer
 }
 
-func (l *OtelSyncer) processQueue(intervalInSec int) {
-	ticker := time.NewTicker(time.Duration(intervalInSec) * time.Second)
+func (l *OtelSyncer) processQueue(interval time.Duration) {
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
 		select {
