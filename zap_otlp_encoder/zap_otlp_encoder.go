@@ -5,8 +5,6 @@ package zap_otlp_encoder
 
 import (
 	"encoding/base64"
-	"encoding/json"
-	"io"
 	"sync"
 	"time"
 
@@ -54,13 +52,8 @@ type otlpEncoder struct {
 	// reflectEnc zapcore.ReflectedEncoder
 }
 
-// NewkvEncoder creates a key=value encoder
+// NewOTLPEncoder creates a OTLP encoder
 func NewOTLPEncoder(cfg zapcore.EncoderConfig) zapcore.Encoder {
-	// If no EncoderConfig.NewReflectedEncoder is provided by the user, then use default
-	if cfg.NewReflectedEncoder == nil {
-		cfg.NewReflectedEncoder = defaultReflectedEncoder
-	}
-
 	return &otlpEncoder{
 		EncoderConfig: &cfg,
 		buf:           bufferPool.Get(),
@@ -248,11 +241,4 @@ func addFields(enc zapcore.ObjectEncoder, fields []zapcore.Field) {
 	for i := range fields {
 		fields[i].AddTo(enc)
 	}
-}
-
-func defaultReflectedEncoder(w io.Writer) zapcore.ReflectedEncoder {
-	enc := json.NewEncoder(w)
-	// For consistency with our custom JSON encoder.
-	enc.SetEscapeHTML(false)
-	return enc
 }
