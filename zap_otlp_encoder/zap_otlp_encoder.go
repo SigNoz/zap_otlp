@@ -158,20 +158,20 @@ func (enc *otlpEncoder) clone() *otlpEncoder {
 	return clone
 }
 
-var levelMap = map[string]uint{
-	"trace": 1,
-	"debug": 5,
-	"info":  9,
-	"warn":  13,
-	"error": 17,
-	"fatal": 21,
+var levelMap = map[string]lpb.SeverityNumber{
+	"trace": lpb.SeverityNumber_SEVERITY_NUMBER_TRACE,
+	"debug": lpb.SeverityNumber_SEVERITY_NUMBER_DEBUG,
+	"info":  lpb.SeverityNumber_SEVERITY_NUMBER_DEBUG,
+	"warn":  lpb.SeverityNumber_SEVERITY_NUMBER_WARN,
+	"error": lpb.SeverityNumber_SEVERITY_NUMBER_ERROR,
+	"fatal": lpb.SeverityNumber_SEVERITY_NUMBER_FATAL,
 }
 
 func (enc *otlpEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
 	final := enc.clone()
 	if final.LevelKey != "" && final.EncodeLevel != nil {
-		final.log.SeverityNumber = lpb.SeverityNumber(levelMap[ent.Level.String()])
-		final.log.SeverityText = ent.Level.String()
+		final.log.SeverityNumber = levelMap[ent.Level.String()]
+		final.log.SeverityText = lpb.SeverityNumber_name[int32(final.log.SeverityNumber)]
 	}
 	if final.TimeKey != "" {
 		final.log.TimeUnixNano = uint64(ent.Time.UnixNano())
