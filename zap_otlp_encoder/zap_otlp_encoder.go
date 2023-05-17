@@ -16,8 +16,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const _hex = "0123456789abcdef"
-
 var bufferPool = buffer.NewPool()
 
 var _otlpPool = sync.Pool{New: func() interface{} {

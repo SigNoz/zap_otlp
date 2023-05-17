@@ -2,7 +2,6 @@ package zap_otlp_sync
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -30,6 +29,7 @@ type OtelSyncer struct {
 	sendBatch     chan bool
 	closeExporter chan bool
 	valueMutex    sync.Mutex
+	pushDataWg    sync.WaitGroup
 }
 
 type Options struct {
@@ -87,6 +87,7 @@ func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
 		sendBatch:     make(chan bool),
 		closeExporter: make(chan bool),
 		valueMutex:    sync.Mutex{},
+		pushDataWg:    sync.WaitGroup{},
 	}
 
 	go syncer.processQueue(options.BatchIntervalInSec)
@@ -100,7 +101,6 @@ func (l *OtelSyncer) processQueue(intervalInSec int) {
 	for {
 		select {
 		case <-l.closeExporter:
-			fmt.Println("shutting down syncer batcher")
 			return
 		case <-ticker.C:
 			l.pushData()
@@ -119,6 +119,9 @@ func (l *OtelSyncer) processQueue(intervalInSec int) {
 }
 
 func (l *OtelSyncer) pushData() (err error) {
+	l.pushDataWg.Add(1)
+	defer l.pushDataWg.Done()
+
 	rec := []*lpb.LogRecord{}
 
 	l.valueMutex.Lock()
@@ -179,6 +182,7 @@ func (l *OtelSyncer) Close() error {
 		return err
 	}
 	l.closeExporter <- true
+	l.pushDataWg.Wait()
 	l.close()
 	return nil
 }
