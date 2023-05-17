@@ -198,7 +198,7 @@ func (enc *otlpEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (
 	addFields(final, fields)
 	data, err := proto.Marshal(final.log)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	final.buf.AppendString(logger + "#SIGNOZ#" + string(data))

@@ -18,6 +18,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	zapotlp "github.com/SigNoz/zap_otlp"
 	zapotlpencoder "github.com/SigNoz/zap_otlp/zap_otlp_encoder"
@@ -96,7 +97,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	conn, err := grpc.DialContext(ctx, *targetPtr, grpc.WithBlock(), grpc.WithInsecure())
+	conn, err := grpc.DialContext(ctx, *targetPtr, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithTimeout(time.Duration(5)*time.Second))
 	if err != nil {
 		log.Fatal(err)
 	}
