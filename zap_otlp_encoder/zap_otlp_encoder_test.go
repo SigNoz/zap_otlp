@@ -2,7 +2,6 @@ package zap_otlp_encoder
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -68,22 +67,6 @@ func TestOTLPEncodeEntry(t *testing.T) {
 				Level:   zapcore.InfoLevel,
 				Time:    time.Date(2018, 6, 19, 16, 33, 42, 99, time.UTC),
 				Message: "lob law",
-			},
-		},
-		{
-			name: "Test 2",
-			desc: "Add logger name",
-			expected: &lv1.LogRecord{
-				TimeUnixNano:   1529426022000000099,
-				SeverityNumber: lv1.SeverityNumber_SEVERITY_NUMBER_INFO,
-				SeverityText:   lv1.SeverityNumber_name[int32(lv1.SeverityNumber_SEVERITY_NUMBER_INFO)],
-				Body:           &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "lob law"}},
-			},
-			ent: zapcore.Entry{
-				Level:      zapcore.InfoLevel,
-				Time:       time.Date(2018, 6, 19, 16, 33, 42, 99, time.UTC),
-				LoggerName: "bob",
-				Message:    "lob law",
 			},
 		},
 		{
@@ -164,11 +147,11 @@ func TestOTLPEncodeEntry(t *testing.T) {
 			data := strings.Split(string(buf.Bytes()), "#SIGNOZ#")
 
 			// For debugging purpose uncomment the lines below
-			r := &lv1.LogRecord{}
-			err = proto.Unmarshal([]byte(data[1]), r)
-			So(err, ShouldBeNil)
-			fmt.Println(r)
-			fmt.Println(tt.expected)
+			// r := &lv1.LogRecord{}
+			// err = proto.Unmarshal([]byte(data[1]), r)
+			// So(err, ShouldBeNil)
+			// fmt.Println(r)
+			// fmt.Println(tt.expected)
 
 			d, err := proto.Marshal(tt.expected)
 			So(err, ShouldBeNil)
@@ -176,4 +159,21 @@ func TestOTLPEncodeEntry(t *testing.T) {
 			buf.Free()
 		})
 	}
+}
+
+func TestInstrumentationScope(t *testing.T) {
+	enc := NewOTLPEncoder(zap.NewProductionEncoderConfig())
+	ent := zapcore.Entry{
+		Level:      zapcore.InfoLevel,
+		Time:       time.Date(2018, 6, 19, 16, 33, 42, 99, time.UTC),
+		LoggerName: "bob",
+	}
+	Convey("test", t, func() {
+		buf, err := enc.EncodeEntry(ent, []zapcore.Field{})
+		So(err, ShouldBeNil)
+
+		data := strings.Split(string(buf.Bytes()), "#SIGNOZ#")
+
+		So("bob", ShouldResemble, data[0])
+	})
 }
