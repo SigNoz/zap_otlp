@@ -2,6 +2,7 @@ package zap_otlp_encoder
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -97,6 +98,8 @@ func TestOTLPEncodeEntry(t *testing.T) {
 					{Key: "so", Value: &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "passes"}}},
 					{Key: "answer", Value: &cv1.AnyValue{Value: &cv1.AnyValue_IntValue{IntValue: 42}}},
 					{Key: "common_pie", Value: &cv1.AnyValue{Value: &cv1.AnyValue_DoubleValue{DoubleValue: 3.14}}},
+					{Key: "int32", Value: &cv1.AnyValue{Value: &cv1.AnyValue_IntValue{IntValue: 1}}},
+					{Key: "uintptr", Value: &cv1.AnyValue{Value: &cv1.AnyValue_IntValue{IntValue: 1}}},
 					{Key: "a_float32", Value: &cv1.AnyValue{Value: &cv1.AnyValue_DoubleValue{DoubleValue: 2.7100000381469727}}},
 
 					// TODO: complex/array/object support to be added
@@ -113,7 +116,8 @@ func TestOTLPEncodeEntry(t *testing.T) {
 				zap.String("so", "passes"),
 				zap.Int("answer", 42),
 				zap.Float64("common_pie", 3.14),
-				// zap.Int32("xyz", 1),
+				zap.Int32("int32", 1),
+				zap.Uintptr("uintptr", uintptr(1)),
 				zap.Float32("a_float32", 2.71),
 				zap.Complex128("complex_value", 3.14-2.71i), // currently ignored by the encoder
 				zap.Reflect("such", foo{ // currently ignored by the encoder
@@ -160,11 +164,11 @@ func TestOTLPEncodeEntry(t *testing.T) {
 			data := strings.Split(string(buf.Bytes()), "#SIGNOZ#")
 
 			// For debugging purpose uncomment the lines below
-			// r := &lv1.LogRecord{}
-			// err = proto.Unmarshal([]byte(data[1]), r)
-			// So(err, ShouldBeNil)
-			// fmt.Println(r)
-			// fmt.Println(tt.expected)
+			r := &lv1.LogRecord{}
+			err = proto.Unmarshal([]byte(data[1]), r)
+			So(err, ShouldBeNil)
+			fmt.Println(r)
+			fmt.Println(tt.expected)
 
 			d, err := proto.Marshal(tt.expected)
 			So(err, ShouldBeNil)

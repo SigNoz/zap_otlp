@@ -128,15 +128,33 @@ func (enc *otlpEncoder) OpenNamespace(key string) {
 	// todo: implement this later
 }
 
-func (enc *otlpEncoder) AddInt(k string, v int)         {}
-func (enc *otlpEncoder) AddInt32(k string, v int32)     {}
-func (enc *otlpEncoder) AddInt16(k string, v int16)     {}
-func (enc *otlpEncoder) AddInt8(k string, v int8)       {}
-func (enc *otlpEncoder) AddUint(k string, v uint)       {}
-func (enc *otlpEncoder) AddUint32(k string, v uint32)   {}
-func (enc *otlpEncoder) AddUint16(k string, v uint16)   {}
-func (enc *otlpEncoder) AddUint8(k string, v uint8)     {}
-func (enc *otlpEncoder) AddUintptr(k string, v uintptr) {}
+func (enc *otlpEncoder) AddInt(key string, val int) {
+	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_IntValue{IntValue: int64(val)}})
+}
+func (enc *otlpEncoder) AddInt32(key string, val int32) {
+	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_IntValue{IntValue: int64(val)}})
+}
+func (enc *otlpEncoder) AddInt16(key string, val int16) {
+	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_IntValue{IntValue: int64(val)}})
+}
+func (enc *otlpEncoder) AddInt8(key string, val int8) {
+	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_IntValue{IntValue: int64(val)}})
+}
+func (enc *otlpEncoder) AddUint(key string, val uint) {
+	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_IntValue{IntValue: int64(val)}})
+}
+func (enc *otlpEncoder) AddUint32(key string, val uint32) {
+	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_IntValue{IntValue: int64(val)}})
+}
+func (enc *otlpEncoder) AddUint16(key string, val uint16) {
+	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_IntValue{IntValue: int64(val)}})
+}
+func (enc *otlpEncoder) AddUint8(key string, val uint8) {
+	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_IntValue{IntValue: int64(val)}})
+}
+func (enc *otlpEncoder) AddUintptr(key string, val uintptr) {
+	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_IntValue{IntValue: int64(val)}})
+}
 
 func (enc *otlpEncoder) Clone() zapcore.Encoder {
 	clone := enc.clone()
