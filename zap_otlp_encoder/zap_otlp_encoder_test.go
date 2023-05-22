@@ -2,7 +2,7 @@ package zap_otlp_encoder
 
 import (
 	"context"
-	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -60,7 +60,7 @@ func TestOTLPEncodeEntry(t *testing.T) {
 			expected: &lv1.LogRecord{
 				TimeUnixNano:   1529426022000000099,
 				SeverityNumber: lv1.SeverityNumber_SEVERITY_NUMBER_INFO,
-				SeverityText:   "info",
+				SeverityText:   lv1.SeverityNumber_name[int32(lv1.SeverityNumber_SEVERITY_NUMBER_INFO)],
 				Body:           &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "lob law"}},
 			},
 			ent: zapcore.Entry{
@@ -75,11 +75,8 @@ func TestOTLPEncodeEntry(t *testing.T) {
 			expected: &lv1.LogRecord{
 				TimeUnixNano:   1529426022000000099,
 				SeverityNumber: lv1.SeverityNumber_SEVERITY_NUMBER_INFO,
-				SeverityText:   "info",
+				SeverityText:   lv1.SeverityNumber_name[int32(lv1.SeverityNumber_SEVERITY_NUMBER_INFO)],
 				Body:           &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "lob law"}},
-				Attributes: []*cv1.KeyValue{
-					{Key: "logger", Value: &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "bob"}}},
-				},
 			},
 			ent: zapcore.Entry{
 				Level:      zapcore.InfoLevel,
@@ -94,10 +91,9 @@ func TestOTLPEncodeEntry(t *testing.T) {
 			expected: &lv1.LogRecord{
 				TimeUnixNano:   1529426022000000099,
 				SeverityNumber: lv1.SeverityNumber_SEVERITY_NUMBER_INFO,
-				SeverityText:   "info",
+				SeverityText:   lv1.SeverityNumber_name[int32(lv1.SeverityNumber_SEVERITY_NUMBER_INFO)],
 				Body:           &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "lob law"}},
 				Attributes: []*cv1.KeyValue{
-					{Key: "logger", Value: &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "bob"}}},
 					{Key: "so", Value: &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "passes"}}},
 					{Key: "answer", Value: &cv1.AnyValue{Value: &cv1.AnyValue_IntValue{IntValue: 42}}},
 					{Key: "common_pie", Value: &cv1.AnyValue{Value: &cv1.AnyValue_DoubleValue{DoubleValue: 3.14}}},
@@ -117,6 +113,7 @@ func TestOTLPEncodeEntry(t *testing.T) {
 				zap.String("so", "passes"),
 				zap.Int("answer", 42),
 				zap.Float64("common_pie", 3.14),
+				// zap.Int32("xyz", 1),
 				zap.Float32("a_float32", 2.71),
 				zap.Complex128("complex_value", 3.14-2.71i), // currently ignored by the encoder
 				zap.Reflect("such", foo{ // currently ignored by the encoder
@@ -136,13 +133,10 @@ func TestOTLPEncodeEntry(t *testing.T) {
 			expected: &lv1.LogRecord{
 				TimeUnixNano:   1529426022000000099,
 				SeverityNumber: lv1.SeverityNumber_SEVERITY_NUMBER_INFO,
-				SeverityText:   "info",
+				SeverityText:   lv1.SeverityNumber_name[int32(lv1.SeverityNumber_SEVERITY_NUMBER_INFO)],
 				Body:           &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "lob law"}},
-				Attributes: []*cv1.KeyValue{
-					{Key: "logger", Value: &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "bob"}}},
-				},
-				TraceId: tid[:],
-				SpanId:  sid[:],
+				TraceId:        tid[:],
+				SpanId:         sid[:],
 			},
 			ent: zapcore.Entry{
 				Level:      zapcore.InfoLevel,
@@ -163,15 +157,18 @@ func TestOTLPEncodeEntry(t *testing.T) {
 			buf, err := enc.EncodeEntry(tt.ent, tt.fields)
 			So(err, ShouldBeNil)
 
+			data := strings.Split(string(buf.Bytes()), "#SIGNOZ#")
+
 			// For debugging purpose uncomment the lines below
-			r := &lv1.LogRecord{}
-			err = proto.Unmarshal([]byte(buf.String()), r)
-			So(err, ShouldBeNil)
-			fmt.Println(r)
+			// r := &lv1.LogRecord{}
+			// err = proto.Unmarshal([]byte(data[1]), r)
+			// So(err, ShouldBeNil)
+			// fmt.Println(r)
+			// fmt.Println(tt.expected)
 
 			d, err := proto.Marshal(tt.expected)
 			So(err, ShouldBeNil)
-			So(d, ShouldResemble, []byte(buf.String()))
+			So(d, ShouldResemble, []byte(data[1]))
 			buf.Free()
 		})
 	}

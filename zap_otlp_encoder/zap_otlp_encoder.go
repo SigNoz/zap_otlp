@@ -159,7 +159,7 @@ func (enc *otlpEncoder) clone() *otlpEncoder {
 var levelMap = map[string]lpb.SeverityNumber{
 	"trace": lpb.SeverityNumber_SEVERITY_NUMBER_TRACE,
 	"debug": lpb.SeverityNumber_SEVERITY_NUMBER_DEBUG,
-	"info":  lpb.SeverityNumber_SEVERITY_NUMBER_DEBUG,
+	"info":  lpb.SeverityNumber_SEVERITY_NUMBER_INFO,
 	"warn":  lpb.SeverityNumber_SEVERITY_NUMBER_WARN,
 	"error": lpb.SeverityNumber_SEVERITY_NUMBER_ERROR,
 	"fatal": lpb.SeverityNumber_SEVERITY_NUMBER_FATAL,

@@ -82,10 +82,9 @@ func setup(ctx context.Context, conn *grpc.ClientConn) (trace.Tracer, *zap.Logge
 		Resource:       res,
 	})
 
-	ws := zapcore.AddSync(otlpSync)
 	core := zapcore.NewTee(
 		zapcore.NewCore(consoleEncoder, os.Stdout, defaultLogLevel),
-		zapcore.NewCore(otlpEncoder, zapcore.NewMultiWriteSyncer(ws), defaultLogLevel),
+		zapcore.NewCore(otlpEncoder, otlpSync, defaultLogLevel),
 	)
 	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 
