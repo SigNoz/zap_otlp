@@ -3,10 +3,12 @@ package zap_otlp_sync
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/DataDog/datadog-agent/pkg/trace/log"
 	"go.opentelemetry.io/otel/sdk/instrumentation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	collpb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
@@ -152,7 +154,7 @@ func (l *OtelSyncer) pushData() (err error) {
 	// TODO: how to handle partial failure and error
 	if err != nil {
 		// priting the error so that we can see it in console
-		fmt.Println(fmt.Errorf("zap_otlp_sync: error while exporting data: %v", err.Error()))
+		log.Println(fmt.Errorf("zap_otlp_sync: error while exporting data: %v", err.Error()))
 		return err
 	}
 
