@@ -31,8 +31,6 @@ func putOTLPEncoder(enc *otlpEncoder) {
 	enc.buf = nil
 	enc.spaced = false
 	enc.openNamespaces = 0
-	// enc.reflectBuf = nil
-	// enc.reflectEnc = nil
 	enc.log = nil
 	_otlpPool.Put(enc)
 }
@@ -44,10 +42,6 @@ type otlpEncoder struct {
 	openNamespaces int
 
 	log *lpb.LogRecord
-
-	// for encoding generic values by reflection
-	// reflectBuf *buffer.Buffer
-	// reflectEnc zapcore.ReflectedEncoder
 }
 
 // NewOTLPEncoder creates a OTLP encoder
