@@ -28,7 +28,7 @@ import (
 )
 
 var targetPtr = flag.String("target", "127.0.0.1:4317", "OTLP target")
-var grpcInsecure = os.Getenv("INSECURE_MODE")
+var grpcInsecure = os.Getenv("OTEL_EXPORTER_OTLP_INSECURE")
 
 const (
 	lib    = "github.com/SigNoz/zap_otlp/example"
