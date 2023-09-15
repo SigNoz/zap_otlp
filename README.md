@@ -10,5 +10,5 @@ Set these environment variables
 
 ```
 OTEL_EXPORTER_OTLP_HEADERS=signoz-access-token=0130ca72-5132-4ffb-accb-2fe515076114"
-INSECURE_MODE=false
+OTEL_EXPORTER_OTLP_INSECURE=false
 ```
