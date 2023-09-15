@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -15,8 +16,11 @@ import (
 	lpb "go.opentelemetry.io/proto/otlp/logs/v1"
 	rv1 "go.opentelemetry.io/proto/otlp/resource/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 )
+
+var otlpHeaders = os.Getenv("OTEL_EXPORTER_OTLP_HEADERS")
 
 type OtelSyncer struct {
 	ctx       context.Context
@@ -65,6 +69,18 @@ func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
 		}
 		rattrs = &rv1.Resource{Attributes: attrs}
 	}
+
+	// check if there is md in the env
+	headers := map[string]string{}
+	for _, header := range strings.Split(otlpHeaders, ",") {
+		splittedHeader := strings.Split(header, "=")
+		if len(splittedHeader) == 2 {
+			headers[splittedHeader[0]] = splittedHeader[1]
+		}
+	}
+
+	md := metadata.New(headers)
+	ctx = metadata.NewOutgoingContext(context.Background(), md)
 
 	syncer := &OtelSyncer{
 		ctx:        ctx,
@@ -147,7 +163,8 @@ func (l *OtelSyncer) pushData() (err error) {
 	if l.res != nil {
 		rl.SchemaUrl, rl.Resource = l.resSchema, l.res
 	}
-	_, err = l.client.Export(context.Background(), &collpb.ExportLogsServiceRequest{
+
+	_, err = l.client.Export(l.ctx, &collpb.ExportLogsServiceRequest{
 		ResourceLogs: []*lpb.ResourceLogs{rl},
 	})
 	// TODO: how to handle partial failure and error
