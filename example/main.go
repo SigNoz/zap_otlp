@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -18,6 +19,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 
 	zapotlp "github.com/SigNoz/zap_otlp"
@@ -26,6 +28,7 @@ import (
 )
 
 var targetPtr = flag.String("target", "127.0.0.1:4317", "OTLP target")
+var grpcInsecure = os.Getenv("OTEL_EXPORTER_OTLP_INSECURE")
 
 const (
 	lib    = "github.com/SigNoz/zap_otlp/example"
@@ -96,7 +99,14 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	conn, err := grpc.DialContext(ctx, *targetPtr, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithTimeout(time.Duration(5)*time.Second))
+	var secureOption grpc.DialOption
+	if strings.ToLower(grpcInsecure) == "false" || grpcInsecure == "0" || strings.ToLower(grpcInsecure) == "f" {
+		secureOption = grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, ""))
+	} else {
+		secureOption = grpc.WithTransportCredentials(insecure.NewCredentials())
+	}
+
+	conn, err := grpc.DialContext(ctx, *targetPtr, grpc.WithBlock(), secureOption, grpc.WithTimeout(time.Duration(5)*time.Second))
 	if err != nil {
 		log.Fatal(err)
 	}
