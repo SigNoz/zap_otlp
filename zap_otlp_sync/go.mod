@@ -5,7 +5,7 @@ go 1.19
 require (
 	go.opentelemetry.io/otel/sdk v1.16.0
 	go.opentelemetry.io/proto/otlp v1.0.0
-	google.golang.org/grpc v1.57.0
+	google.golang.org/grpc v1.57.1
 	google.golang.org/protobuf v1.31.0
 )
 
