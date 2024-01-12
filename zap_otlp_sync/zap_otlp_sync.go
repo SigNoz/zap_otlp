@@ -20,8 +20,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var otlpHeaders = os.Getenv("OTEL_EXPORTER_OTLP_HEADERS")
-
 type OtelSyncer struct {
 	ctx       context.Context
 	close     context.CancelFunc
@@ -46,6 +44,7 @@ type Options struct {
 }
 
 func NewOtlpSyncer(conn *grpc.ClientConn, options Options) *OtelSyncer {
+	otlpHeaders := os.Getenv("OTEL_EXPORTER_OTLP_HEADERS")
 	ctx, cancel := context.WithCancel(context.Background())
 
 	if options.BatchSize == 0 {
