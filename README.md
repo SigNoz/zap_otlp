@@ -9,6 +9,8 @@ inspired from https://github.com/MrAlias/otlpr
 Set these environment variables
 
 ```
-OTEL_EXPORTER_OTLP_HEADERS=signoz-access-token=0130ca72-5132-4ffb-accb-2fe515076115
+OTEL_EXPORTER_OTLP_HEADERS=signoz-access-token=<SIGNOZ_INGESTION_KEY>
 OTEL_EXPORTER_OTLP_INSECURE=false
 ```
+
+Replace `<SIGNOZ_INGESTION_KEY>` with your ingestion token
