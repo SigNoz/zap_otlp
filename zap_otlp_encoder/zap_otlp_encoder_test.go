@@ -84,9 +84,13 @@ func TestOTLPEncodeEntry(t *testing.T) {
 					{Key: "int32", Value: &cv1.AnyValue{Value: &cv1.AnyValue_IntValue{IntValue: 1}}},
 					{Key: "uintptr", Value: &cv1.AnyValue{Value: &cv1.AnyValue_IntValue{IntValue: 1}}},
 					{Key: "a_float32", Value: &cv1.AnyValue{Value: &cv1.AnyValue_DoubleValue{DoubleValue: 2.7100000381469727}}},
-
-					// TODO: complex/array/object support to be added
-					// {Key: "complex_value", Value: &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "3.14-2.71i"}}},
+					{Key: "complex_value", Value: &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "(3.14-2.71i)"}}},
+					{Key: "such", Value: &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{
+						StringValue: "{\"aee\":\"lol\",\"bee\":123,\"cee\":0.9999,\"dee\":[{\"key\":\"pi\",\"val\":3.141592653589793},{\"key\":\"tau\",\"val\":6.283185307179586}]}",
+					}}},
+					{Key: "any", Value: &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "{\"x\":\"y\"}"}}},
+					{Key: "any bar", Value: &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "{\"key\":\"pi\",\"val\":3.141592653589793}"}}},
+					{Key: "any array bar", Value: &cv1.AnyValue{Value: &cv1.AnyValue_StringValue{StringValue: "[{\"key\":\"pi\",\"val\":3.141592653589793},{\"key\":\"tau\",\"val\":6.283185307179586}]"}}},
 				},
 			},
 			ent: zapcore.Entry{
@@ -102,8 +106,8 @@ func TestOTLPEncodeEntry(t *testing.T) {
 				zap.Int32("int32", 1),
 				zap.Uintptr("uintptr", uintptr(1)),
 				zap.Float32("a_float32", 2.71),
-				zap.Complex128("complex_value", 3.14-2.71i), // currently ignored by the encoder
-				zap.Reflect("such", foo{ // currently ignored by the encoder
+				zap.Complex128("complex_value", 3.14-2.71i),
+				zap.Reflect("such", foo{
 					A: "lol",
 					B: 123,
 					C: 0.9999,
@@ -111,6 +115,16 @@ func TestOTLPEncodeEntry(t *testing.T) {
 						{"pi", 3.141592653589793},
 						{"tau", 6.283185307179586},
 					},
+				}),
+				zap.Any("any", map[string]string{
+					"x": "y",
+				}),
+				zap.Any("any bar", bar{
+					"pi", 3.141592653589793,
+				}),
+				zap.Any("any array bar", []bar{
+					{"pi", 3.141592653589793},
+					{"tau", 6.283185307179586},
 				}),
 			},
 		},

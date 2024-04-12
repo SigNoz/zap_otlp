@@ -50,7 +50,10 @@ func (a App) Hello(ctx context.Context, user string) error {
 	ctx, span = a.tracer.Start(ctx, "Hello")
 	defer span.End()
 
-	a.logger.Info("unamed: hello from the function to user: "+user, zap.String("user", user), zapotlp.SpanCtx(ctx), zap.Duration("duration", time.Second*2))
+	data := map[string]string{
+		"hello": "world",
+	}
+	a.logger.Info("unamed: hello from the function to user: "+user, zap.Any("test", data), zap.String("user", user), zapotlp.SpanCtx(ctx), zap.Duration("duration", time.Second*2))
 	a.logger.Named("my").Info("my1: hello from the function to user: "+user, zap.String("user", user), zapotlp.SpanCtx(ctx), zap.Duration("duration", time.Second*2))
 	a.logger.Named("my1").Info("my2: hello from the function to user: "+user, zap.String("user", user), zapotlp.SpanCtx(ctx), zap.Duration("duration", time.Second*2))
 
@@ -125,7 +128,7 @@ func main() {
 
 	app := NewApp(tracer, logger)
 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 1; i++ {
 		time.Sleep(1 * time.Second)
 		app.Hello(ctx, strconv.Itoa(i)+"user: xyz")
 	}
