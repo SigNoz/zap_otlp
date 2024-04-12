@@ -5,6 +5,8 @@ package zap_otlp_encoder
 
 import (
 	"encoding/base64"
+	"encoding/json"
+	"strconv"
 	"sync"
 	"time"
 
@@ -80,11 +82,13 @@ func (enc *otlpEncoder) AddBool(key string, val bool) {
 }
 
 func (enc *otlpEncoder) AddComplex128(key string, val complex128) {
-	// todo: implement this later
+	str := strconv.FormatComplex(val, 'g', -1, 128)
+	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_StringValue{StringValue: str}})
 }
 
 func (enc *otlpEncoder) AddComplex64(key string, val complex64) {
-	// todo: implement this later
+	str := strconv.FormatComplex(complex128(val), 'g', -1, 64)
+	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_StringValue{StringValue: str}})
 }
 
 func (enc *otlpEncoder) AddDuration(key string, val time.Duration) {
@@ -114,7 +118,20 @@ func (enc *otlpEncoder) AddTime(key string, val time.Time) {
 	// not required
 }
 
+func (enc *otlpEncoder) encodeReflected(obj interface{}) ([]byte, error) {
+	bytes, err := json.Marshal(obj)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
+
 func (enc *otlpEncoder) AddReflected(key string, obj interface{}) error {
+	valueBytes, err := enc.encodeReflected(obj)
+	if err != nil {
+		return err
+	}
+	enc.addKeyVal(key, &v1.AnyValue{Value: &v1.AnyValue_StringValue{StringValue: string(valueBytes)}})
 	return nil
 }
 
