@@ -2,7 +2,7 @@ module github.com/SigNoz/zap_otlp/zap_otlp_encoder
 
 go 1.19
 
-replace github.com/SigNoz/zap_otlp => ../
+// replace github.com/SigNoz/zap_otlp => ../
 
 require (
 	github.com/SigNoz/zap_otlp v0.1.3
