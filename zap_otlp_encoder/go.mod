@@ -5,7 +5,7 @@ go 1.19
 replace github.com/SigNoz/zap_otlp => ../
 
 require (
-	github.com/SigNoz/zap_otlp v0.1.0
+	github.com/SigNoz/zap_otlp v0.1.3
 	github.com/smartystreets/goconvey v1.8.1
 	go.opentelemetry.io/otel/sdk v1.16.0
 	go.opentelemetry.io/otel/trace v1.16.0

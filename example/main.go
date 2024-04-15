@@ -53,7 +53,14 @@ func (a App) Hello(ctx context.Context, user string) error {
 	data := map[string]string{
 		"hello": "world",
 	}
-	a.logger.Info("unamed: hello from the function to user: "+user, zap.Any("test", data), zap.String("user", user), zapotlp.SpanCtx(ctx), zap.Duration("duration", time.Second*2))
+	a.logger.Info("unamed: hello from the function to user: "+user, zap.Any("rand struct",
+		struct {
+			Field1 string
+			Field2 int
+		}{
+			Field1: "asadadas",
+			Field2: 10,
+		}), zap.Any("test", data), zap.String("user", user), zapotlp.SpanCtx(ctx), zap.Duration("duration", time.Second*2))
 	a.logger.Named("my").Info("my1: hello from the function to user: "+user, zap.String("user", user), zapotlp.SpanCtx(ctx), zap.Duration("duration", time.Second*2))
 	a.logger.Named("my1").Info("my2: hello from the function to user: "+user, zap.String("user", user), zapotlp.SpanCtx(ctx), zap.Duration("duration", time.Second*2))
 

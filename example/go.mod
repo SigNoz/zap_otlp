@@ -2,16 +2,16 @@ module github.com/SigNoz/zap_otlp/example
 
 go 1.19
 
-replace (
-	github.com/SigNoz/zap_otlp => ../
-	github.com/SigNoz/zap_otlp/zap_otlp_encoder => ../zap_otlp_encoder
-	github.com/SigNoz/zap_otlp/zap_otlp_sync => ../zap_otlp_sync
-)
+// replace (
+// 	github.com/SigNoz/zap_otlp => ../
+// 	github.com/SigNoz/zap_otlp/zap_otlp_encoder => ../zap_otlp_encoder
+// 	github.com/SigNoz/zap_otlp/zap_otlp_sync => ../zap_otlp_sync
+// )
 
 require (
-	github.com/SigNoz/zap_otlp v0.1.0
-	github.com/SigNoz/zap_otlp/zap_otlp_encoder v0.0.0-00010101000000-000000000000
-	github.com/SigNoz/zap_otlp/zap_otlp_sync v0.0.0-00010101000000-000000000000
+	github.com/SigNoz/zap_otlp v0.1.3
+	github.com/SigNoz/zap_otlp/zap_otlp_encoder v0.0.0-20240413040607-3f39d463daa2
+	github.com/SigNoz/zap_otlp/zap_otlp_sync v0.0.0-20240413040607-3f39d463daa2
 	go.opentelemetry.io/otel v1.16.0
 	go.opentelemetry.io/otel/sdk v1.16.0
 	go.opentelemetry.io/otel/trace v1.16.0
@@ -32,5 +32,5 @@ require (
 	golang.org/x/text v0.13.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230530153820-e85fd2cbaebc // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 )
