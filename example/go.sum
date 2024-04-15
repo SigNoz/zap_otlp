@@ -1,3 +1,9 @@
+github.com/SigNoz/zap_otlp v0.1.3 h1:VeXfQW3gTuxO2y6+avjwSfy1bVWyThM2PO/2uKpR928=
+github.com/SigNoz/zap_otlp v0.1.3/go.mod h1:SFcTpRc3obuS1qZDJ70t8EQb+4dF1pXdNZp5Sxrn1Qg=
+github.com/SigNoz/zap_otlp/zap_otlp_encoder v0.0.0-20240413040607-3f39d463daa2 h1:4nn2sViE3oHVn9SkU+nWnqUoFHQL6qquSx3Obw3ThcM=
+github.com/SigNoz/zap_otlp/zap_otlp_encoder v0.0.0-20240413040607-3f39d463daa2/go.mod h1:5OrONYei+6ZxI7gl1S8oj7AZA7m+Gbct9tDH4TBfp20=
+github.com/SigNoz/zap_otlp/zap_otlp_sync v0.0.0-20240413040607-3f39d463daa2 h1:q3Har8yR1Kl6/a3FlqXVROOHZTvcgeDFJZVGzjcT60U=
+github.com/SigNoz/zap_otlp/zap_otlp_sync v0.0.0-20240413040607-3f39d463daa2/go.mod h1:vGRQaGqdIDDshixKOf+8WiLmMcmKz8+T1LhlRVXi/5k=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
 github.com/go-logr/logr v1.2.4 h1:g01GSCwiDw2xSZfjJ2/T9M+S6pFdcNtFYsp+Y43HYDQ=

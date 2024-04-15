@@ -2,16 +2,16 @@ module github.com/SigNoz/zap_otlp/example
 
 go 1.19
 
-replace (
-	github.com/SigNoz/zap_otlp => ../
-	github.com/SigNoz/zap_otlp/zap_otlp_encoder => ../zap_otlp_encoder
-	github.com/SigNoz/zap_otlp/zap_otlp_sync => ../zap_otlp_sync
-)
+// replace (
+// 	github.com/SigNoz/zap_otlp => ../
+// 	github.com/SigNoz/zap_otlp/zap_otlp_encoder => ../zap_otlp_encoder
+// 	github.com/SigNoz/zap_otlp/zap_otlp_sync => ../zap_otlp_sync
+// )
 
 require (
-	github.com/SigNoz/zap_otlp v0.1.0
-	github.com/SigNoz/zap_otlp/zap_otlp_encoder v0.0.0-00010101000000-000000000000
-	github.com/SigNoz/zap_otlp/zap_otlp_sync v0.0.0-00010101000000-000000000000
+	github.com/SigNoz/zap_otlp v0.1.3
+	github.com/SigNoz/zap_otlp/zap_otlp_encoder v0.0.0-20240413040607-3f39d463daa2
+	github.com/SigNoz/zap_otlp/zap_otlp_sync v0.0.0-20240413040607-3f39d463daa2
 	go.opentelemetry.io/otel v1.16.0
 	go.opentelemetry.io/otel/sdk v1.16.0
 	go.opentelemetry.io/otel/trace v1.16.0
