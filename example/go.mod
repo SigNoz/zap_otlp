@@ -10,8 +10,8 @@ go 1.19
 
 require (
 	github.com/SigNoz/zap_otlp v0.1.3
-	github.com/SigNoz/zap_otlp/zap_otlp_encoder v0.0.0-20240413040607-3f39d463daa2
-	github.com/SigNoz/zap_otlp/zap_otlp_sync v0.0.0-20240413040607-3f39d463daa2
+	github.com/SigNoz/zap_otlp/zap_otlp_encoder v0.1.3
+	github.com/SigNoz/zap_otlp/zap_otlp_sync v0.1.3
 	go.opentelemetry.io/otel v1.16.0
 	go.opentelemetry.io/otel/sdk v1.16.0
 	go.opentelemetry.io/otel/trace v1.16.0
