@@ -14,3 +14,5 @@ OTEL_EXPORTER_OTLP_INSECURE=false
 ```
 
 Replace `<SIGNOZ_INGESTION_KEY>` with your ingestion token
+
+target = ingest.{region}.signoz.cloud:443
