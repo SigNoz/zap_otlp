@@ -7,6 +7,7 @@ This plugin helps you send logs from [zap](https://github.com/uber-go/zap) logge
 ## Getting Started
 * Create two encoders. One for console and the other for OTLP.
     ```
+    config := zap.NewProductionEncoderConfig()
   	otlpEncoder := zapotlpencoder.NewOTLPEncoder(config)
 	consoleEncoder := zapcore.NewConsoleEncoder(config)
     ```
