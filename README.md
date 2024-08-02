@@ -3,6 +3,9 @@
 
 inspired from https://github.com/MrAlias/otlpr
 
+otlp encoder and sync for zap
+
+
 
 ## To send data to signoz cloud
 
